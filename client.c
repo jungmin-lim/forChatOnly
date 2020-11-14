@@ -10,8 +10,6 @@
 #define NAME_SIZE 20
 
 void request_grouplist(int sock);
-void create_group(int);
-int join_group(int);
 
 void* send_msg(void *arg);
 void* recv_msg(void *arg);
@@ -44,15 +42,11 @@ int main(int argc, char *argv[]){
 	while(1){
 		request_grouplist(sock);
 		scanf("%s", buf);
-		if(strcmp(buf, "#create") == 0){
-			create_group(sock);
-		}
-		else if(strcmp(buf, "#join") == 0){
-			if(join_group(sock)) break;
-		}
-		else {
-			printf("unknown command\n");
-		}
+		write(sock, buf, strlen(buf) + 1);
+
+		read(sock, buf, BUF_SIZE);
+
+		if(strncmp(buf, "OK", 2) == 0) break;
 	}
 
 	pthread_create(&snd_thread, NULL, send_msg, (void*)&sock);
@@ -62,25 +56,6 @@ int main(int argc, char *argv[]){
 	pthread_join(rcv_thread, &thread_return);
 	close(sock);  
 	return 0;
-}
-
-void create_group(int sock){
-	char buf[BUF_SIZE];
-	scanf("%s", buf);
-
-	write(sock, buf, strlen(buf) + 1);
-}
-
-int join_group(int sock){
-	char buf[BUF_SIZE];
-	scanf("%s", buf);
-
-	write(sock, buf, strlen(buf) + 1);
-	
-	read(sock, buf, BUF_SIZE);
-
-	if(strcmp(buf, "OK") == 0) return 1;
-	else return 0;
 }
 
 void request_grouplist(int sock){
@@ -97,7 +72,7 @@ void request_grouplist(int sock){
 
 void* send_msg(void *arg) {
 	int sock = *((int*)arg);
-	char name_msg[NAME_SIZE_BUF_SIZE];
+	char name_msg[NAME_SIZE+BUF_SIZE];
 	while(1) {
 		gets(msg, BUF_SIZE, stdin);
 		if(!strcmp(msg,"q\n") || !strcmp(msg,"Q\n")) {
