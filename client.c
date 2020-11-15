@@ -8,6 +8,7 @@
 
 #define BUF_SIZE 100
 #define NAME_SIZE 20
+#define ESC 27
 
 void request_grouplist(int sock);
 
@@ -24,6 +25,8 @@ int main(int argc, char *argv[]){
 	pthread_t snd_thread, rcv_thread;
 	void * thread_return;
 	char buf[BUF_SIZE];
+	int recv_len;
+
 	if(argc!=3) {
 		printf("Usage : %s <IP> <port>\n", argv[0]);
 		exit(1);
@@ -41,12 +44,17 @@ int main(int argc, char *argv[]){
 
 	while(1){
 		request_grouplist(sock);
+		printf("end\n");
 		scanf("%s", buf);
 		write(sock, buf, strlen(buf) + 1);
 
-		read(sock, buf, BUF_SIZE);
+		recv_len = read(sock, buf, BUF_SIZE);
 
-		if(strncmp(buf, "OK", 2) == 0) break;
+		if(strncmp(buf, "OK", 2) == 0) {
+			buf[recv_len] = '\0';
+			printf("%s", buf);
+			break;
+		}
 	}
 
 	pthread_create(&snd_thread, NULL, send_msg, (void*)&sock);
@@ -61,11 +69,18 @@ int main(int argc, char *argv[]){
 void request_grouplist(int sock){
 	char buf[BUF_SIZE];
 	int str_len;
-	while(1){
+	int isRunning = 1;
+	while(isRunning){
 		str_len = read(sock, buf, BUF_SIZE-1);
-		if(str_len == -1)
+		if(str_len == 0 || str_len == -1)
 			break;
-		buf[str_len] = 0;
+
+		if(buf[str_len-1] == (char)ESC){
+			buf[str_len-1] = '\0';
+			isRunning = 0;
+		}
+		else
+			buf[str_len] = 0;
 		fputs(buf, stdout);
 	}
 }
