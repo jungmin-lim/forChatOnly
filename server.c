@@ -7,7 +7,6 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <pthread.h>
-#include "user.h"
 
 #define NAMESZ 64
 #define BUF_SIZE 1024
@@ -29,7 +28,7 @@ typedef struct _group{
 }group;
 
 void * handle_clnt(void * arg);
-void send_msg(char * msg, int len);
+void send_msg(int clnt_sock, char * msg, int len);
 void error_handling(char * msg);
 void initGroupList();
 void initClntList();
@@ -114,7 +113,7 @@ void * handle_clnt(void * arg){
         }
 
         strcpy(msg, "R. refresh\n");
-        write(clnt_sock, msg, srlen(msg));
+        write(clnt_sock, msg, strlen(msg));
         strcpy(msg, "N. create new group\n");
         write(clnt_sock, msg, strlen(msg));
 
@@ -140,7 +139,8 @@ void * handle_clnt(void * arg){
                     strcpy(groupList[group_id].name, buf);
                     groupList[group_id].list = clntList[clnt_sock];
                     clntList[clnt_sock]->state = 1;
-                    strcpy(msg, "OK: created group %d\n", i);
+                    sprintf(buf, "OK: created group %d\n", group_id);
+                    strcpy(msg, buf);
                     write(clnt_sock, msg, strlen(msg));
                     pthread_mutex_lock(&mutx);
 
@@ -178,7 +178,7 @@ void * handle_clnt(void * arg){
 
         // join existing group
         else{
-            sscanf(msg, "%d\n%s", group_id, buf);
+            sscanf(msg, "%d\n%s", &group_id, buf);
             if(!groupList[group_id].list){
                 strcpy(msg, "FAIL: group not existing, try other gorup\n");
                 write(clnt_sock, msg, strlen(msg));
@@ -187,7 +187,8 @@ void * handle_clnt(void * arg){
                 pthread_mutex_lock(&mutx);
                 insertCircularList(groupList[group_id].list, clntList[clnt_sock]);
                 clntList[clnt_sock]->state = 1;
-                strcpy(msg, "OK: joined group %s\n", groupList[group_id].name);
+                sprintf(buf, "OK: joined group %s\n", groupList[group_id].name);
+                strcpy(msg, buf);
                 write(clnt_sock, msg, strlen(msg));
                 pthread_mutex_unlock(&mutx);
 
