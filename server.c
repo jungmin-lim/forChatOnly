@@ -118,7 +118,7 @@ void * handle_clnt(void * arg){
         write(clnt_sock, msg, strlen(msg));
         strcpy(msg, "N. create new group\n");
         write(clnt_sock, msg, strlen(msg));
-        msg[0] = ESC;
+        msg[0] = (char)ESC;
         write(clnt_sock, msg, 1);
 
         str_len = read(clnt_sock, msg, sizeof(msg));
@@ -146,7 +146,7 @@ void * handle_clnt(void * arg){
                     sprintf(buf, "OK: created group %d\n", group_id);
                     strcpy(msg, buf);
                     write(clnt_sock, msg, strlen(msg));
-                    msg[0] = ESC;
+                    msg[0] = (char)ESC;
                     write(clnt_sock, msg, 1);
                     pthread_mutex_lock(&mutx);
 
@@ -174,14 +174,17 @@ void * handle_clnt(void * arg){
             if(i == MAX_GRP){
                 strcpy(msg, "FAIL: group FULL try later or join other group\n");
                 write(clnt_sock, msg, strlen(msg));
-                msg[0] = ESC;
+                msg[0] = (char)ESC;
                 write(clnt_sock, msg, 1);
             }
         }
 
         // refresh group list
         else if(msg[0] == 'R' || msg[0] == 'r'){
-            continue;
+            strcpy(msg, "refreshing group list...\n");
+            write(clnt_sock, msg, strlen(msg));
+            msg[0] = (char)ESC;
+            write(clnt_sock, msg, 1);
         }
 
         // join existing group
@@ -190,7 +193,7 @@ void * handle_clnt(void * arg){
             if(!groupList[group_id].list){
                 strcpy(msg, "FAIL: group not existing, try other gorup\n");
                 write(clnt_sock, msg, strlen(msg));
-                msg[0] = ESC;
+                msg[0] = (char)ESC;
                 write(clnt_sock, msg, 1);
             }
             else{
@@ -200,7 +203,7 @@ void * handle_clnt(void * arg){
                 sprintf(buf, "OK: joined group %s\n", groupList[group_id].name);
                 strcpy(msg, buf);
                 write(clnt_sock, msg, strlen(msg));
-                msg[0] = ESC;
+                msg[0] = (char)ESC;
                 write(clnt_sock, msg, 1);
                 pthread_mutex_unlock(&mutx);
 
@@ -260,7 +263,7 @@ void send_msg(int clnt_sock, char * msg, int len){
     pthread_mutex_lock(&mutx);
     while(temp != clntList[clnt_sock]){
         write(temp->fd, msg, len);
-        msg[0] = ESC;
+        msg[0] = (char)ESC;
         write(clnt_sock, msg, 1);
         temp = temp->next;
     }
