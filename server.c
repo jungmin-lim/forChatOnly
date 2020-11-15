@@ -225,10 +225,10 @@ void * handle_clnt(void * arg){
     */
     pthread_mutex_lock(&mutx);
     if(groupList[group_id].list == clntList[clnt_sock]){
-        groupList[group_id] = groupList[group_id].list->next;
+        groupList[group_id].list = groupList[group_id].list->next;
         if(groupList[group_id].list == clntList[clnt_sock]){
             free(clntList[clnt_sock]);
-            groupList[group_id] = NULL;
+            groupList[group_id].list = NULL;
             clntList[clnt_sock] = NULL;
         }
         else{
