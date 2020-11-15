@@ -13,6 +13,8 @@
 #define MAX_CLNT 512
 #define MAX_GRP 32
 
+#define ESC 27
+
 typedef struct _node* nodePointer;
 struct _node{
     int fd;
@@ -116,6 +118,8 @@ void * handle_clnt(void * arg){
         write(clnt_sock, msg, strlen(msg));
         strcpy(msg, "N. create new group\n");
         write(clnt_sock, msg, strlen(msg));
+        msg[0] = ESC;
+        write(clnt_sock, msg, 1);
 
         str_len = read(clnt_sock, msg, sizeof(msg));
         msg[str_len] = '\0';
@@ -142,6 +146,8 @@ void * handle_clnt(void * arg){
                     sprintf(buf, "OK: created group %d\n", group_id);
                     strcpy(msg, buf);
                     write(clnt_sock, msg, strlen(msg));
+                    msg[0] = ESC;
+                    write(clnt_sock, msg, 1);
                     pthread_mutex_lock(&mutx);
 
                     // read user name from client
@@ -168,6 +174,8 @@ void * handle_clnt(void * arg){
             if(i == MAX_GRP){
                 strcpy(msg, "FAIL: group FULL try later or join other group\n");
                 write(clnt_sock, msg, strlen(msg));
+                msg[0] = ESC;
+                write(clnt_sock, msg, 1);
             }
         }
 
@@ -182,6 +190,8 @@ void * handle_clnt(void * arg){
             if(!groupList[group_id].list){
                 strcpy(msg, "FAIL: group not existing, try other gorup\n");
                 write(clnt_sock, msg, strlen(msg));
+                msg[0] = ESC;
+                write(clnt_sock, msg, 1);
             }
             else{
                 pthread_mutex_lock(&mutx);
@@ -190,6 +200,8 @@ void * handle_clnt(void * arg){
                 sprintf(buf, "OK: joined group %s\n", groupList[group_id].name);
                 strcpy(msg, buf);
                 write(clnt_sock, msg, strlen(msg));
+                msg[0] = ESC;
+                write(clnt_sock, msg, 1);
                 pthread_mutex_unlock(&mutx);
 
                 // read user name from client
@@ -248,6 +260,8 @@ void send_msg(int clnt_sock, char * msg, int len){
     pthread_mutex_lock(&mutx);
     while(temp != clntList[clnt_sock]){
         write(temp->fd, msg, len);
+        msg[0] = ESC;
+        write(clnt_sock, msg, 1);
         temp = temp->next;
     }
     pthread_mutex_unlock(&mutx);
