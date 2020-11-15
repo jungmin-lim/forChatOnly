@@ -18,9 +18,9 @@ typedef struct _group{
     nodePointer list;
 }group;
 
-void * handle_clnt(void * arg);         // function for multithread 
-void send_msg(char * msg, int len);     // send message
-void error_handling(char * msg);        // handling error
+void * handle_clnt(void * arg);
+void send_msg(char * msg, int len);
+void error_handling(char * msg);
 void initGroupList();
 void initClntList();
 
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]){
         clnt_adr_sz=sizeof(clnt_adr);
         clnt_sock=accept(serv_sock, (struct sockaddr*)&clnt_adr,&clnt_adr_sz);
 
-        // add clntList
+        // add client
         pthread_mutex_lock(&mutx);
         clntList[clnt_sock] = createNode(clnt_sock);
         pthread_mutex_unlock(&mutx);
@@ -73,13 +73,23 @@ int main(int argc, char *argv[]){
     return 0;
 }
 
+/*
+    new client connected
+    1. send client list of existing group
+    2. receive group selection from client
+        2-1. if msg[0] == 'R', go back 1
+        2-2. if msg[0] == 'N', create new group
+        2-3. if connection fail, go back 1
+    3. receive user name from client and join group
+    4. receive client message and send it to other clients in group
+*/
 void * handle_clnt(void * arg){
     int clnt_sock=*((int*)arg);
-    int str_len=0, i;
+    int str_len=0, group_id, i;
     char msg[BUF_SIZE]; 
-    char buf[BUF_SIZE], buf1[BUF_SIZE];
+    char buf[BUF_SIZE], com;
 
-    // send group list to connected clnt
+    // send group list to connected client
     while(!clntList[clnt_sock]->state){
         for(i = 0; i < MAX_GRP; ++i){
             if(groupList[i].list){
@@ -107,14 +117,19 @@ void * handle_clnt(void * arg){
 
         // create new group
         if(msg[0] == 'N' || msg[0] == 'n'){
+            sscanf(msg, "%c\n%s", &com, buf);
             for(i =0; i < MAX_GRP; ++i){
                 if(!groupList[i].list){
-                    groupList[i].list = clntList[clnt_sock];
+                    pthread_mutex_lock(&mutx);
+                    group_id = i;
+                    strcpy(groupList[group_id].name, buf);
+                    groupList[group_id].list = clntList[clnt_sock];
                     clntList[clnt_sock]->state = 1;
                     strcpy(msg, "OK: created group %d\n", i);
                     write(clnt_sock, msg, strlen(msg));
+                    pthread_mutex_lock(&mutx);
 
-                    // read user name & group name 
+                    // read user name from client
                     str_len = read(clnt_sock, msg, sizeof(msg));
                     msg[str_len] = '\0';
                     if(str_len <= 0){
@@ -127,10 +142,8 @@ void * handle_clnt(void * arg){
                         return NULL;
                     }
 
-                    sscanf(msg, "%s\n%s", buf, buf1);
                     pthread_mutex_lock(&mutx);
-                    strcpy(clntList[clnt_sock]->name, buf);
-                    strcpy(groupList[i].name, buf1);
+                    strcpy(clntList[clnt_sock]->name, msg);
                     pthread_mutex_unlock(&mutx);
                     break;
                 }
@@ -150,54 +163,76 @@ void * handle_clnt(void * arg){
 
         // join existing group
         else{
-            sscanf(msg, "%d\n%s", i, buf);
-            if(!groupList[i].list){
+            sscanf(msg, "%d\n%s", group_id, buf);
+            if(!groupList[group_id].list){
                 strcpy(msg, "FAIL: group not existing, try other gorup\n");
                 write(clnt_sock, msg, strlen(msg));
             }
             else{
                 pthread_mutex_lock(&mutx);
-                insertCircularList(groupList[i].list, clntList[clnt_sock]);
+                insertCircularList(groupList[group_id].list, clntList[clnt_sock]);
                 clntList[clnt_sock]->state = 1;
-                pthread_mutex_unlock(&mutx);
-                strcpy(msg, "OK: joined group %s\n", groupList[i].name);
+                strcpy(msg, "OK: joined group %s\n", groupList[group_id].name);
                 write(clnt_sock, msg, strlen(msg));
+                pthread_mutex_unlock(&mutx);
+
+                // read user name from client
+                str_len = read(clnt_sock, msg, sizeof(msg));
+                msg[str_len] = '\0';
+                if(str_len <= 0){
+                    pthread_mutex_lock(&mutx);
+                    deleteCircularList(clntList[clnt_sock]);
+                    clntList[clnt_sock] = NULL;
+                    pthread_mutex_unlock(&mutx);
+
+                    close(clnt_sock);
+                    return NULL;
+                }
+
+                strcpy(clntList[clnt_sock]->name, msg);
             }
         }
     }
 
-    if(!clntList[clnt_sock]->state){
-        pthread_mutex_lock(&mutx);
-        free(clntList[clnt_sock]);
-        clntList[clnt_sock] = NULL;
-        pthread_mutex_unlock(&mutx);
-
-        close(clnt_sock);
-        return NULL;
-    }
-
+    /*
+        read client message and send it to other clients in group
+    */
     while((str_len=read(clnt_sock, msg, sizeof(msg)))!=0)
-        send_msg(msg, str_len);
+        send_msg(clnt_sock, msg, str_len);
 
+    /*
+        client eixt
+        1. remove client from group
+            1-1. if client is the only person in group, remove group
+        2. remove client from client list
+        3. close client socket
+    */
     pthread_mutex_lock(&mutx);
-    for(i=0; i<clnt_cnt; i++){
-		if(clnt_sock==clnt_socks[i]){
-            while(i++<clnt_cnt-1)
-                clnt_socks[i]=clnt_socks[i+1];
-            break;
+    if(groupList[group_id].list == clntList[clnt_sock]){
+        groupList[group_id] = groupList[group_id].list->next;
+        if(groupList[group_id].list == clntList[clnt_sock]){
+            free(clntList[clnt_sock]);
+            groupList[group_id] = NULL;
+            clntList[clnt_sock] = NULL;
+        }
+        else{
+            deleteCircularList(clntList[clnt_sock]);
+            clntList[clnt_sock] = NULL;
         }
     }
-    clnt_cnt--;
     pthread_mutex_unlock(&mutx);
     close(clnt_sock);
     return NULL;
 }
 
-void send_msg(char * msg, int len){
+void send_msg(int clnt_sock, char * msg, int len){
     nodePointer temp;
+    temp = clntList[clnt_sock]->next;
+
     pthread_mutex_lock(&mutx);
-    for(i=0; i<clnt_cnt; i++){
-        write(clnt_socks[i], msg, len);
+    while(temp != clntList[clnt_sock]){
+        write(temp->fd, msg, len);
+        temp = temp->next;
     }
     pthread_mutex_unlock(&mutx);
 }
