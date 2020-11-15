@@ -74,7 +74,7 @@ void* send_msg(void *arg) {
 	int sock = *((int*)arg);
 	char name_msg[NAME_SIZE+BUF_SIZE];
 	while(1) {
-		gets(msg, BUF_SIZE, stdin);
+		scanf("%s", msg);
 		if(!strcmp(msg,"q\n") || !strcmp(msg,"Q\n")) {
 			close(sock);
 			exit(0);
