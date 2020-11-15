@@ -4,15 +4,25 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include "user.h"
 
+#define NAMESZ 64
 #define BUF_SIZE 1024
 #define MAX_CLNT 512
 #define MAX_GRP 32
 
-typedef group* groupPointer;
+typedef struct _node* nodePointer;
+struct _node{
+    int fd;
+    char name[NAMESZ];
+    int color;
+    int state;
+    nodePointer next;
+}node;
+typedef struct _group* groupPointer;
 typedef struct _group{
     char name[NAMESZ];
     nodePointer list;
@@ -23,6 +33,11 @@ void send_msg(char * msg, int len);
 void error_handling(char * msg);
 void initGroupList();
 void initClntList();
+
+nodePointer createNode(int fd);
+int isEmpty(nodePointer list);
+void insertCircularList(nodePointer list, nodePointer node);
+void deleteCircularList(nodePointer node);
 
 int clnt_cnt=0;
 nodePointer clntList[MAX_CLNT];
@@ -255,4 +270,53 @@ void initClntList(){
     for(i = 0; i < MAX_CLNT; ++i){
         clntList[i] = NULL;
     }
+}
+
+nodePointer createNode(int fd){
+    nodePointer newNode;
+    time_t t;;
+
+    srand((unsigned) time(&t));
+    newNode = (nodePointer)malloc(sizeof(*newNode));
+    if(newNode == NULL){
+        fprintf(stderr, "error while allocating memory\n");
+        exit(EXIT_FAILURE);
+    }
+
+    newNode->fd = fd;
+    strcpy(newNode->name, "\0"); 
+    newNode->color = rand()%10;
+    newNode->state = 0;
+    newNode->next = newNode;
+    
+    return newNode;
+}
+
+int isEmpty(nodePointer list){
+    if( (!list) || (list->next == list)){
+        return 1;
+    }
+    return 0;
+}
+
+void insertCircularList(nodePointer list, nodePointer node){
+    node->next = list->next;
+    list->next = node;
+
+    return;
+}
+
+void deleteCircularList(nodePointer node){
+    nodePointer temp;
+    temp = node;
+
+    if(isEmpty(node)) return;
+    do{
+        temp = temp->next;
+    }while(temp != node);
+
+    temp->next = node->next;
+    free(node);
+
+    return;
 }
