@@ -12,9 +12,11 @@ struct _node{
     nodePointer next;
 };
 
-nodePointer createNode(int fd, char name[], int color){
+nodePointer createNode(int fd){
     nodePointer newNode;
-    
+    time_t t;;
+
+    srand((unsigned) time(&t));
     newNode = (nodePointer)malloc(sizeof(*newNode));
     if(newNode == NULL){
         fprintf(stderr, "error while allocating memory\n");
@@ -22,8 +24,8 @@ nodePointer createNode(int fd, char name[], int color){
     }
 
     newNode->fd = fd;
-    strcpy(newNode->name, name); 
-    newNode->color = color;
+    strcpy(newNode->name, "\0"); 
+    newNode->color = rand()%10;
     newNode->state = 0;
     newNode->next = newNode;
     
@@ -58,4 +60,3 @@ void deleteCircularList(nodePointer node){
 
     return;
 }
-

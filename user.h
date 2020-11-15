@@ -6,7 +6,7 @@
 typedef struct _node node;
 typedef node* nodePointer;
 
-nodePointer createNode(int fd, char name[], int color);
+nodePointer createNode(int fd);
 int isEmpty(nodePointer list);
 void insertCircularList(nodePointer list, nodePointer node);
 void deleteCircularList(nodePointer node);
