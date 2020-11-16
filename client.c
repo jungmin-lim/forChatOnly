@@ -25,7 +25,7 @@ int main(int argc, char *argv[]){
 	pthread_t snd_thread, rcv_thread;
 	void * thread_return;
 	char buf[BUF_SIZE];
-	int recv_len;
+	int recv_len, pos;
 
 	if(argc!=3) {
 		printf("Usage : %s <IP> <port>\n", argv[0]);
@@ -44,11 +44,20 @@ int main(int argc, char *argv[]){
 
 	while(1){
 		request_grouplist(sock);
-		printf("end\n");
-		scanf("%s", buf);
+		scanf(" %[^\n]", buf);
+		pos = 0;
+		while(buf[pos] != '\0'){
+			if(buf[pos] == ' ') buf[pos] = '\n';
+			pos++;
+		}
 		write(sock, buf, strlen(buf) + 1);
 
-		recv_len = read(sock, buf, BUF_SIZE);
+		pos = 0;
+		while(read(sock, buf+(pos), 1) > 0){
+			if(buf[pos] == (char)ESC) break;
+			pos++;
+		}
+		buf[pos] = '\0';
 
 		if(strncmp(buf, "OK", 2) == 0) {
 			buf[recv_len] = '\0';
@@ -56,6 +65,9 @@ int main(int argc, char *argv[]){
 			break;
 		}
 	}
+
+	printf("Enter your name: ");
+	fflush(stdout);
 
 	pthread_create(&snd_thread, NULL, send_msg, (void*)&sock);
 	pthread_create(&rcv_thread, NULL, recv_msg, (void*)&sock);
@@ -94,8 +106,8 @@ void* send_msg(void *arg) {
 			close(sock);
 			exit(0);
 		}
-		sprintf(name_msg,"%s %s", name, msg);
-		write(sock, name_msg, strlen(name_msg));
+		//sprintf(name_msg,"%s %s", name, msg);
+		write(sock, msg, strlen(msg));
 	}
 	return NULL;
 }
