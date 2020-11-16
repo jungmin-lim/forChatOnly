@@ -148,7 +148,7 @@ void * handle_clnt(void * arg){
                     write(clnt_sock, msg, strlen(msg));
                     msg[0] = (char)ESC;
                     write(clnt_sock, msg, 1);
-                    pthread_mutex_lock(&mutx);
+                    pthread_mutex_unlock(&mutx);
 
                     // read user name from client
                     str_len = read(clnt_sock, msg, sizeof(msg));
@@ -189,7 +189,7 @@ void * handle_clnt(void * arg){
 
         // join existing group
         else{
-            sscanf(msg, "%d\n%s", &group_id, buf);
+            sscanf(msg, "%d", &group_id);
             if(!groupList[group_id].list){
                 strcpy(msg, "FAIL: group not existing, try other gorup\n");
                 write(clnt_sock, msg, strlen(msg));
