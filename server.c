@@ -190,8 +190,8 @@ void * handle_clnt(void * arg){
         // join existing group
         else{
             sscanf(msg, "%d", &group_id);
-            if(!groupList[group_id].list){
-                strcpy(msg, "FAIL: group not existing, try other gorup\n");
+            if(groupList[group_id].list == NULL){
+                strcpy(msg, "FAIL: group not existing, try other group\n");
                 write(clnt_sock, msg, strlen(msg));
                 msg[0] = (char)ESC;
                 write(clnt_sock, msg, 1);
@@ -228,8 +228,10 @@ void * handle_clnt(void * arg){
     /*
         read client message and send it to other clients in group
     */
-    while((str_len=read(clnt_sock, msg, sizeof(msg)))!=0)
+    while((str_len=read(clnt_sock, msg, sizeof(msg)))!=0){
+        msg[str_len]='\0';
         send_msg(clnt_sock, msg, str_len);
+    }
 
     /*
         client eixt
@@ -257,16 +259,17 @@ void * handle_clnt(void * arg){
 }
 
 void send_msg(int clnt_sock, char * msg, int len){
+    char buf[BUF_SIZE + NAMESZ];
     nodePointer temp;
     temp = clntList[clnt_sock]->next;
 
     pthread_mutex_lock(&mutx);
     while(temp != clntList[clnt_sock]){
-        write(temp->fd, msg, len);
-        msg[0] = (char)ESC;
-        write(clnt_sock, msg, 1);
+        sprintf(buf, "%s: %s\n", clntList[clnt_sock]->name, msg);
+        write(temp->fd, buf, strlen(buf));
         temp = temp->next;
     }
+    msg[0]=0;
     pthread_mutex_unlock(&mutx);
 }
 
@@ -331,7 +334,7 @@ void deleteCircularList(nodePointer node){
     if(isEmpty(node)) return;
     do{
         temp = temp->next;
-    }while(temp != node);
+    }while(temp->next != node);
 
     temp->next = node->next;
     free(node);
