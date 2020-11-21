@@ -47,8 +47,7 @@ int main(int argc, char *argv[]){
 
     // receive group list
     while(1){
-        receive_grouplist(sock);
-
+	receive_grouplist(sock);
 		fprintf(stdout, "Select group to join: ");
 		fflush(stdout);
 		scanf(" %s", buf);
@@ -90,9 +89,12 @@ int main(int argc, char *argv[]){
 		else if (buf[0] == 'R' || buf[0] == 'r'){
 			strcpy(msg, buf);
 			write(sock, msg, strlen(msg));
-			str_len = read(sock, msg, sizeof(msg));
-			if(str_len <= 0){
-				error_handling("connection lost!");
+			while(1){
+				str_len = read(sock, msg, 1);
+				if(msg[0] == (char)ESC) break;
+				if(str_len <= 0){
+					error_handling("connection lost!");
+				}
 			}
 		}
 		// try joining existing group
@@ -116,7 +118,7 @@ int main(int argc, char *argv[]){
 					fflush(stdout);
 
 					scanf(" %s", msg);
-					strncpy(name, msg, strlen(msg));
+					strncpy(name, msg, strlen(msg) + 1);
 					write(sock, msg, strlen(msg));
 
 					sprintf(msg, "%s is joined!", name);

@@ -185,6 +185,7 @@ void * handle_clnt(void * arg){
             write(clnt_sock, msg, strlen(msg));
             msg[0] = (char)ESC;
             write(clnt_sock, msg, 1);
+	    continue;
         }
 
         // join existing group
@@ -252,6 +253,10 @@ void * handle_clnt(void * arg){
             deleteCircularList(clntList[clnt_sock]);
             clntList[clnt_sock] = NULL;
         }
+    }
+    else{
+            deleteCircularList(clntList[clnt_sock]);
+            clntList[clnt_sock] = NULL;
     }
     pthread_mutex_unlock(&mutx);
     close(clnt_sock);
