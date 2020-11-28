@@ -11,7 +11,7 @@
 #define INPUT_SPACE 3
 
 int lines, cols;
-
+WINDOW* mainw;
 void init();
 void init_colorset();
 void add_bubble(char* name, char* msg, int color);
@@ -21,8 +21,58 @@ void init_inputspace();
 void reset_inputfield(char*, int, int);
 
 void int_handler(int signo){
-	endwin();
-	exit(0);
+	WINDOW *popup = newwin(10, 40, (LINES - 10)/2, (COLS - 40)/2);
+	int key;
+	int answer = 0;
+	box(popup, '|', '-');
+	mvwprintw(popup, 4, 13, "%s", "Want to quit?");
+	mvwprintw(popup, 6, 14, "%s", "Yes");
+	wattrset(popup, A_STANDOUT);
+	mvwprintw(popup, 6, 22, "%s", "No");
+	wrefresh(popup);
+
+	while(1){
+		key = getch();
+		switch(key){
+			case '\n':
+				if(answer == 1){
+					endwin();
+					exit(0);
+				}
+				else{
+					touchwin(stdscr);
+					refresh();
+					delwin(popup);
+					return;
+				}
+				break;
+			case KEY_LEFT:
+				if(answer == 0){
+					wattron(popup, A_STANDOUT);
+					mvwprintw(popup, 6, 14, "%s", "Yes");
+					wattroff(popup, A_STANDOUT);
+					mvwprintw(popup, 6, 22, "%s", "No");
+					answer = 1;
+				}
+				break;
+			case KEY_RIGHT:
+				if(answer == 1){
+					wattroff(popup, A_STANDOUT);
+					mvwprintw(popup, 6, 14, "%s", "Yes");
+					wattron(popup, A_STANDOUT);
+					mvwprintw(popup, 6, 22, "%s", "No");
+					answer = 0;
+				}
+				break;
+			case 27:
+				touchwin(stdscr);
+				refresh();
+				delwin(popup);
+				return;
+		}
+		wmove(popup, 1, 0);
+		wrefresh(popup);
+	}
 }
 
 int main(){
@@ -46,7 +96,7 @@ int main(){
 
 void init(){
 	signal(SIGINT, (void*)int_handler);
-	initscr();
+	mainw = initscr();
 	scrollok(stdscr, TRUE);
 	init_colorset();
 	crmode();
