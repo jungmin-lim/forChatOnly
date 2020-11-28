@@ -2,12 +2,14 @@
 #include <curses.h>
 #include <unistd.h>
 #include <signal.h>
+#include <string.h>
+#include "bufstring.h"
 
 #define MSG_WIDTH_SPACE 20
 #define MSG_HEIGHT 5
 #define INPUT_SPACE 3
 
-int lines, col;
+int lines, cols;
 
 void init();
 void init_colorset();
@@ -15,6 +17,7 @@ void add_bubble(char* name, char* msg, int color);
 int getstring(char* buf);
 void clear_inputspace();
 void init_inputspace();
+void reset_inputfield(char*, int, int);
 
 void int_handler(int signo){
 	endwin();
@@ -50,7 +53,7 @@ void init(){
 	keypad(stdscr, TRUE);
 	noecho();
 	lines = LINES;
-	col = COLS;
+	cols = COLS;
 	clear();
 }
 
@@ -61,21 +64,90 @@ void init_colorset(){
 }
 
 int getstring(char* buf){
-	int i = 0, len = 0;
+	int i = 0, col = 0, len = 0, fieldsize = COLS - 2*INPUT_SPACE;
 	int key;
 	int curline = LINES-MSG_HEIGHT;
 
 	while((key = getch()) != '\n'){
 		if(key >= ' ' && key < 127){
-			printw("%c", key);
-			buf[i++] = key;
-			len = len > i ? len : i;
+			if(i == len){
+				printw("%c", key);
+				buf[i++] = key;
+				len++;
+				col++;
+				if(col >= fieldsize){
+					curline++;
+					col = 0;
+					move(curline, INPUT_SPACE + col);
+				}
+			}
+			else{
+				buf[len] = '\0';
+				insert_char(buf, i++, key);
+				col++; len++;
+				if(col >= fieldsize){
+					curline++;
+					col = 0;
+				}
+				reset_inputfield(buf, curline, col);
+			}
 		}
 		else{
 			switch(key){
+				case KEY_BACKSPACE:
+					if(i > 0){
+						col--;
+						buf[len] = '\0';
+						erase_char(buf, --i);
+						len--;
+						if(len != 0 && col <= 0){
+							col = fieldsize;
+							curline--;
+						}
+						reset_inputfield(buf, curline, col);
+					}
+					break;
 				case KEY_LEFT:
-					i--;
-					move(curline, i + INPUT_SPACE);
+					if(i > 0){
+						i--; col--;
+						if(col <= 0){
+							col = fieldsize;
+							curline--;
+						}
+						move(curline, col + INPUT_SPACE);
+					}
+					break;
+				case KEY_RIGHT:
+					if(i < len){
+						i++; col++;
+						if(col >= fieldsize){
+							col = 0;
+							curline++;
+						}
+						move(curline, col + INPUT_SPACE);
+					}
+					break;
+				case KEY_UP:
+					if(curline > LINES - MSG_HEIGHT){
+						curline--;
+						i -= fieldsize;
+						move(curline, col + INPUT_SPACE);
+					}
+					break;
+				case KEY_DOWN:
+					if(i + fieldsize <= len){
+						curline++;
+						i += fieldsize;
+						move(curline, col + INPUT_SPACE);
+					}
+					break;
+				case KEY_DC:
+					if(i != len){
+						buf[len] = '\0';
+						erase_char(buf, i);
+						len--;
+						reset_inputfield(buf, curline, col);
+					}
 					break;
 				case KEY_RESIZE:
 					if(lines != LINES) {
@@ -84,6 +156,7 @@ int getstring(char* buf){
 						move(curline, i + INPUT_SPACE);
 						refresh();
 						lines = LINES;
+						cols = COLS;
 					}
 					break;
 			}
@@ -91,6 +164,20 @@ int getstring(char* buf){
 	}
 	buf[len] = '\0';
 	return len;
+}
+
+void reset_inputfield(char* msg, int y, int x){
+	int fieldsize = COLS - 2*INPUT_SPACE;
+	int i = 0;
+	clear_inputspace();
+	init_inputspace();
+	move(LINES-MSG_HEIGHT, INPUT_SPACE);
+	for (int cur = 0; cur < strlen(msg); cur += fieldsize){
+		move(LINES-MSG_HEIGHT+i, INPUT_SPACE);
+		printw("%.*s", fieldsize, msg + cur);
+		i++;
+	}
+	move(y, INPUT_SPACE+x);
 }
 
 void add_bubble(char* name, char* msg, int color){
