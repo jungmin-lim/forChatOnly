@@ -7,6 +7,7 @@
 
 #define MSG_WIDTH_SPACE 20
 #define MSG_HEIGHT 5
+#define MSG_SIZE 120
 #define INPUT_SPACE 3
 
 int lines, cols;
@@ -33,10 +34,9 @@ int main(){
 	while(1){
 		init_inputspace();
 		move(LINES-MSG_HEIGHT, INPUT_SPACE);
-		//scanw(" %s", msg);
 		getstring(msg);
 		clear_inputspace();
-		add_bubble(n, msg, temp);
+		add_bubble(NULL, msg, temp);
 		temp = temp == 1?0:1;
 		scrl(MSG_HEIGHT+1);
 	}
@@ -70,27 +70,17 @@ int getstring(char* buf){
 
 	while((key = getch()) != '\n'){
 		if(key >= ' ' && key < 127){
-			if(i == len){
-				printw("%c", key);
-				buf[i++] = key;
-				len++;
-				col++;
-				if(col >= fieldsize){
-					curline++;
-					col = 0;
-					move(curline, INPUT_SPACE + col);
-				}
+			if(len >= MSG_SIZE) continue;
+	
+			buf[len] = '\0';
+			insert_char(buf, i++, key);
+			col++; len++;
+			if(col >= fieldsize){
+				curline++;
+				col = 0;
 			}
-			else{
-				buf[len] = '\0';
-				insert_char(buf, i++, key);
-				col++; len++;
-				if(col >= fieldsize){
-					curline++;
-					col = 0;
-				}
-				reset_inputfield(buf, curline, col);
-			}
+			reset_inputfield(buf, curline, col);
+			
 		}
 		else{
 			switch(key){
@@ -107,6 +97,7 @@ int getstring(char* buf){
 						reset_inputfield(buf, curline, col);
 					}
 					break;
+
 				case KEY_LEFT:
 					if(i > 0){
 						i--; col--;
@@ -117,6 +108,7 @@ int getstring(char* buf){
 						move(curline, col + INPUT_SPACE);
 					}
 					break;
+
 				case KEY_RIGHT:
 					if(i < len){
 						i++; col++;
@@ -127,6 +119,7 @@ int getstring(char* buf){
 						move(curline, col + INPUT_SPACE);
 					}
 					break;
+
 				case KEY_UP:
 					if(curline > LINES - MSG_HEIGHT){
 						curline--;
@@ -134,6 +127,7 @@ int getstring(char* buf){
 						move(curline, col + INPUT_SPACE);
 					}
 					break;
+
 				case KEY_DOWN:
 					if(i + fieldsize <= len){
 						curline++;
@@ -141,6 +135,7 @@ int getstring(char* buf){
 						move(curline, col + INPUT_SPACE);
 					}
 					break;
+
 				case KEY_DC:
 					if(i != len){
 						buf[len] = '\0';
@@ -149,6 +144,7 @@ int getstring(char* buf){
 						reset_inputfield(buf, curline, col);
 					}
 					break;
+
 				case KEY_RESIZE:
 					if(lines != LINES) {
 						scrl(lines - LINES);
@@ -171,6 +167,8 @@ void reset_inputfield(char* msg, int y, int x){
 	int i = 0;
 	clear_inputspace();
 	init_inputspace();
+	move(LINES-6, INPUT_SPACE+2);
+	printw("%3d", strlen(msg));
 	move(LINES-MSG_HEIGHT, INPUT_SPACE);
 	for (int cur = 0; cur < strlen(msg); cur += fieldsize){
 		move(LINES-MSG_HEIGHT+i, INPUT_SPACE);
@@ -184,6 +182,7 @@ void add_bubble(char* name, char* msg, int color){
 	attrset(COLOR_PAIR(1));
 	int space = name != NULL ? 2 : MSG_WIDTH_SPACE - 1;
 	int where = LINES-MSG_HEIGHT-1;
+	int i = 0, bubblewidth = COLS - MSG_WIDTH_SPACE - 12;
 	move(where, space + 2);
 	printw("%*s",  COLS - MSG_WIDTH_SPACE - 4,"");
 	move(where+1, space + 1);
@@ -197,10 +196,13 @@ void add_bubble(char* name, char* msg, int color){
 
 	if(name != NULL) {
 		move(where+1, space + 8);
-		printw("%s", name);
+		printw("[%s]", name);
 	}
-	move(where+2, space + 8);
-	printw("%s", msg);
+	for (int cur = 0; cur < strlen(msg); cur += bubblewidth){
+		move(where+2+i, space + 8);
+		printw("%.*s", bubblewidth, msg + cur);
+		i++;
+	}
 	refresh();
 }	
 
@@ -218,4 +220,6 @@ void init_inputspace(){
 		move(LINES-i-2, INPUT_SPACE-2);
 		printw("%*s", COLS - 2*(INPUT_SPACE-2), "");
 	}
+	move(LINES-6, INPUT_SPACE+1);
+	printw("(  0/%3d)", MSG_SIZE);
 }
