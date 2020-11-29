@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
+#include "screen.h"
 #include "bufstring.h"
 
 #define MSG_WIDTH_SPACE 20
@@ -10,15 +11,9 @@
 #define MSG_SIZE 120
 #define INPUT_SPACE 3
 
-int lines, cols;
-WINDOW* mainw;
-void init();
-void init_colorset();
-void add_bubble(char* name, char* msg, int color);
-int getstring(char* buf);
-void clear_inputspace();
-void init_inputspace();
-void reset_inputfield(char*, int, int);
+int lines, cols;	
+char* msgptr;
+int *ypos, *xpos;
 
 void int_handler(int signo){
 	WINDOW *popup = newwin(10, 40, (LINES - 10)/2, (COLS - 40)/2);
@@ -75,29 +70,25 @@ void int_handler(int signo){
 	}
 }
 
+#ifdef DEBUG
 int main(){
 	int temp = 0;
 	init();
-	attrset(COLOR_PAIR(1));
 	char n[100] = "myname";
 	char msg[100] = "hello world";
 	while(1){
-		init_inputspace();
-		move(LINES-MSG_HEIGHT, INPUT_SPACE);
 		if(getstring(msg) > 0){
-			clear_inputspace();
 			add_bubble(NULL, msg, temp);
-			temp = temp == 1?0:1;
-			scrl(MSG_HEIGHT+1);
 		}
 	}
 	endwin();
 	return 0;
 }
+#endif
 
 void init(){
 	signal(SIGINT, (void*)int_handler);
-	mainw = initscr();
+	initscr();
 	scrollok(stdscr, TRUE);
 	init_colorset();
 	crmode();
@@ -105,6 +96,7 @@ void init(){
 	noecho();
 	lines = LINES;
 	cols = COLS;
+	msgptr = NULL; ypos = NULL; xpos = NULL;
 	clear();
 }
 
@@ -118,6 +110,9 @@ int getstring(char* buf){
 	int i = 0, col = 0, len = 0, fieldsize = COLS - 2*INPUT_SPACE;
 	int key;
 	int curline = LINES-MSG_HEIGHT;
+	msgptr = buf;
+	init_inputspace();
+	move(LINES-MSG_HEIGHT, INPUT_SPACE);
 
 	while((key = getch()) != '\n'){
 		if(key >= ' ' && key < 127){
@@ -210,6 +205,7 @@ int getstring(char* buf){
 		}
 	}
 	buf[len] = '\0';
+	msgptr = NULL;
 	return len;
 }
 
@@ -230,6 +226,7 @@ void reset_inputfield(char* msg, int y, int x){
 }
 
 void add_bubble(char* name, char* msg, int color){
+	clear_inputspace();
 	attrset(COLOR_PAIR(1));
 	int space = name != NULL ? 2 : MSG_WIDTH_SPACE - 1;
 	int where = LINES-MSG_HEIGHT-1;
@@ -254,6 +251,11 @@ void add_bubble(char* name, char* msg, int color){
 		printw("%.*s", bubblewidth, msg + cur);
 		i++;
 	}
+	scrl(MSG_HEIGHT+1);
+	if(msgptr != NULL){
+		init_inputspace();
+		reset_inputfield(msgptr, *ypos, *xpos);
+	}
 	refresh();
 }	
 
@@ -271,6 +273,6 @@ void init_inputspace(){
 		move(LINES-i-2, INPUT_SPACE-2);
 		printw("%*s", COLS - 2*(INPUT_SPACE-2), "");
 	}
-	move(LINES-6, INPUT_SPACE+1);
+	move(LINES-MSG_HEIGHT-1, INPUT_SPACE+1);
 	printw("(  0/%3d)", MSG_SIZE);
 }
