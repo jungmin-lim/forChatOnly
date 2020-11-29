@@ -84,11 +84,12 @@ int main(){
 	while(1){
 		init_inputspace();
 		move(LINES-MSG_HEIGHT, INPUT_SPACE);
-		getstring(msg);
-		clear_inputspace();
-		add_bubble(NULL, msg, temp);
-		temp = temp == 1?0:1;
-		scrl(MSG_HEIGHT+1);
+		if(getstring(msg) > 0){
+			clear_inputspace();
+			add_bubble(NULL, msg, temp);
+			temp = temp == 1?0:1;
+			scrl(MSG_HEIGHT+1);
+		}
 	}
 	endwin();
 	return 0;
@@ -151,7 +152,7 @@ int getstring(char* buf){
 				case KEY_LEFT:
 					if(i > 0){
 						i--; col--;
-						if(col <= 0){
+						if(i != 0 && col <= 0){
 							col = fieldsize;
 							curline--;
 						}
