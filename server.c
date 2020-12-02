@@ -64,7 +64,7 @@ int main(int argc, char *argv[]){
     init_clnt_list();
     init_grp_list();
 
-    memset(&serv_sock, 0, sizeof(serv_adr));
+    memset(&serv_adr, 0, sizeof(serv_adr));
     serv_adr.sin_family = AF_INET;
     serv_adr.sin_addr.s_addr = htonl(INADDR_ANY);
     serv_adr.sin_port = htons(atoi(argv[1]));
@@ -210,17 +210,18 @@ void exit_group(int group_id, int clnt_sock){
     return;
 }
 
-int receive_msg(int clnt_sock, char msg[]){
+int receive_msg(int clnt_sock, char* msg){
     int str_len, len = 0;
-    while (1){
-        // TODO: what if size of message from client is larger than BUFSZ?
+    msg[0] = '\0';
+
+    while(1){
         str_len = read(clnt_sock, &msg[len], 1);
-        if (str_len < 0){
-            fprintf(stdout, "client connection lost: %d\n", clnt_sock);
+        if(str_len <= 0){
+            fprintf(stdout, "client %d connection lost\n", clnt_sock);
             return -1;
         }
 
-        if (msg[len] == ESC){
+        if(msg[len] == ESC){
             msg[len] = '\0';
             break;
         }
@@ -249,8 +250,7 @@ void send_group_list(int clnt_sock){
     write(clnt_sock, msg, strlen(msg));
 
     // write ESC to indicate end of list
-    msg[0] = ESC;
-    msg[1] = '\0';
+    msg[0] = ESC; msg[1] = '\0';
     write(clnt_sock, msg, strlen(msg));
 
     return;
@@ -269,11 +269,11 @@ void *handle_clnt(void *arg){
                 2. receive group selection from client
         */
         while (clnt_list[clnt_sock]->state == 0){
-            pthread_mutex_lock(&mutx);
             send_group_list(clnt_sock);
-            pthread_mutex_unlock(&mutx);
+            fprintf(stdout, "group list sent\n");
 
             str_len = receive_msg(clnt_sock, msg);
+            fprintf(stdout, "%s\n", msg);
             if (str_len < 0){
                 remove_clnt(clnt_sock);
                 close(clnt_sock);
@@ -327,6 +327,7 @@ void *handle_clnt(void *arg){
 
                     // set group name
                     strcpy(group_list[group_id]->name, msg);
+                    fprintf(stdout, "set group name\n");
 
                     // ask user name
                     sprintf(msg, "input user name to use: ");
@@ -346,53 +347,77 @@ void *handle_clnt(void *arg){
 
                     // set user name
                     strcpy(clnt_list[clnt_sock]->name, msg);
+                    fprintf(stdout, "set user name\n");
+
+                    // send group joined message
+                    sprintf(msg, "joined %s\n", group_list[group_id]->name);
+                    write(clnt_sock, msg, strlen(msg));
+
+                    msg[0] = ESC; msg[1] = '\0';
+                    write(clnt_sock, msg, strlen(msg));
 
                     // group creation complete. set state 1
                     clnt_list[clnt_sock]->state = 1;
+                    fprintf(stdout, "group joined\n");
                 }
             }
 
             // join group
-            else
-            {
+            else {
                 sscanf(msg, "%d", &group_id);
+                fprintf(stdout, "groupid: %d\n", group_id);
                 // group not exist
-                if (group_list[group_id] == NULL)
-                {
+                if (group_list[group_id] == NULL) {
                     sprintf(msg, "0group id %d does not exists. Choose other group\n", group_id);
                     write(clnt_sock, msg, strlen(msg));
 
                     msg[0] = ESC;
                     msg[1] = '\0';
                     write(clnt_sock, msg, strlen(msg));
+
+                    continue;
                 }
 
-                join_group(group_id, clnt_sock);
+                else{
+                    join_group(group_id, clnt_sock);
 
-                // ask user name
-                sprintf(msg, "1input user name to use: ");
-                write(clnt_sock, msg, strlen(msg));
+                    // ask user name
+                    sprintf(msg, "1input user name to use: ");
+                    write(clnt_sock, msg, strlen(msg));
 
-                msg[0] = ESC;
-                msg[1] = '\0';
-                write(clnt_sock, msg, strlen(msg));
+                    msg[0] = ESC;
+                    msg[1] = '\0';
+                    write(clnt_sock, msg, strlen(msg));
 
-                str_len = receive_msg(clnt_sock, msg);
-                if (str_len < 0){
-                    exit_group(group_id, clnt_sock);
-                    remove_clnt(clnt_sock);
-                    close(clnt_sock);
-                    return NULL;
+                    str_len = receive_msg(clnt_sock, msg);
+                    if (str_len < 0){
+                        exit_group(group_id, clnt_sock);
+                        remove_clnt(clnt_sock);
+                        close(clnt_sock);
+                        return NULL;
+                    }
+
+                    // set user name
+                    strcpy(clnt_list[clnt_sock]->name, msg);
+
+                    fprintf(stdout, "set user name\n");
+
+                    // send group joined message
+                    sprintf(msg, "joined %s\n", group_list[group_id]->name);
+                    write(clnt_sock, msg, strlen(msg));
+
+                    msg[0] = ESC; msg[1] = '\0';
+                    write(clnt_sock, msg, strlen(msg));
+
+                    // group join complete. set state 1
+                    clnt_list[clnt_sock]->state = 1;
+                    fprintf(stdout, "group joined\n");
                 }
 
-                // set user name
-                strcpy(clnt_list[clnt_sock]->name, msg);
-
-                // group join complete. set state 1
-                clnt_list[clnt_sock]->state = 1;
             }
         }
 
+        fprintf(stdout, "receiving messages\n");
         // receive message and broadcast
         while(clnt_list[clnt_sock]->state == 1){
             str_len = receive_msg(clnt_sock, msg);

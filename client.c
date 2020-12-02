@@ -13,9 +13,10 @@
 void error_handling(char*);
 void receive_group_list(int, char*);
 int receive_msg(int, char*);
+void* send_msg(void*);
+void* recv_msg(void*);
 
-char msg[BUFSZ];
-char buf[BUFSZ];
+char msg[BUFSZ], buf[BUFSZ];
 
 int main(int argc, char* argv[]){
     int sock, group_id;
@@ -41,7 +42,6 @@ int main(int argc, char* argv[]){
         error_handling("connect error");
     }
 
-    // connect char gruop
     while(1){
         // receive group list
         receive_group_list(sock, msg);
@@ -51,7 +51,9 @@ int main(int argc, char* argv[]){
             fprintf(stdout, "\nSelect group: ");
             fflush(stdout);
 
-            scanf("%s\n", buf);
+            fgets(buf, sizeof(buf), stdin);
+            buf[strlen(buf)-1] = '\0';
+
        
             // check if input is valid
             if((buf[0] == 'R' || buf[0] == 'r') && (strlen(buf) < 2)){
@@ -77,10 +79,11 @@ int main(int argc, char* argv[]){
             }
         }
 
+        strcpy(msg, buf);
         write(sock, msg, sizeof(msg));
 
         msg[0] = ESC; msg[1] = '\0';
-        write(sock, msg, strlen(sock));       
+        write(sock, msg, strlen(msg));       
         
         // refresh
         if(mod == 0){
@@ -97,17 +100,18 @@ int main(int argc, char* argv[]){
 
             // group creation failed
             if(msg[0] == '0'){
-                fprintf(stdout, &msg[1]);
+                fprintf(stdout, "%s", &msg[1]);
                 continue;
             }
             
             // group creation success
-            fprintf(stdout, &msg[1]);
+            fprintf(stdout, "%s", &msg[1]);
             fflush(stdout);
 
             // ask group name
             while(1){
-                scanf("%s", buf);
+                fgets(buf, sizeof(buf), stdin);
+                buf[strlen(buf)-1] = '\0';
                 if(strlen(buf) > 63){
                     fprintf(stdout, "group name should shorter than 64 letters. try again: ");
                     fflush(stdout);
@@ -129,10 +133,11 @@ int main(int argc, char* argv[]){
                 return 0;
             }
             
-            fprintf(stdout, msg);
+            fprintf(stdout, "%s", msg);
             fflush(stdout);
             while(1){
-                scanf("%s", buf);
+                fgets(buf, sizeof(buf), stdin);
+                buf[strlen(buf)-1] = '\0';
                 if(strlen(buf) > 63){
                     fprintf(stdout, "user name should shorter than 64 letters. try again: ");
                     fflush(stdout);
@@ -148,6 +153,15 @@ int main(int argc, char* argv[]){
             }
 
             // group creation complete
+            str_len = receive_msg(sock, msg);
+            if(str_len < 0){
+                close(sock);
+                return 0;
+            }
+
+            fprintf(stdout, "%s", msg);
+            fflush(stdout);
+
             break;
         }
 
@@ -161,17 +175,18 @@ int main(int argc, char* argv[]){
 
             // group join failed
             if(msg[0] == '0'){
-                fprintf(stdout, &msg[1]);
+                fprintf(stdout, "%s", &msg[1]);
                 continue;
             }
 
             // group join success
-            fprintf(stdout, &msg[1]);
+            fprintf(stdout, "%s", &msg[1]);
             fflush(stdout);
 
             // ask user name
             while(1){
-                scanf("%s", buf);
+                fgets(buf, sizeof(buf), stdin);
+                buf[strlen(buf)-1] = '\0';
 
                 if(strlen(buf) > 63){
                     fprintf(stdout, "user name should shorter than 64 letters. try again: ");
@@ -188,9 +203,26 @@ int main(int argc, char* argv[]){
             }
 
             // group join complete
+            str_len = receive_msg(sock, msg);
+            if(str_len < 0){
+                close(sock);
+                return 0;
+            }
+
+            fprintf(stdout, "%s", msg);
+            fflush(stdout);
             break;
         }
+
     }
+
+    // start chat
+    pthread_create(&snd_thread, NULL, send_msg, (void*)&sock);
+    pthread_create(&rcv_thread, NULL, recv_msg, (void*)&sock);
+
+    pthread_join(snd_thread, &thread_return);
+    pthread_join(rcv_thread, &thread_return);
+
     return 0;
 }
 
@@ -211,13 +243,15 @@ void receive_group_list(int sock, char* msg){
 
         if(msg[len] == ESC){
             msg[len] = '\0';
-            fprintf(stdout, msg);
+            fprintf(stdout, "%s", msg);
+            fflush(stdout);
             break;
         }
 
         if(msg[len] == '\n'){
             msg[len+1] = '\0';
-            fprintf(stdout, msg);
+            fprintf(stdout, "%s", msg);
+            fflush(stdout);
             len = -1;
         }
 
@@ -231,7 +265,7 @@ int receive_msg(int sock, char* msg){
 
     while(1){
         str_len = read(sock, &msg[len], 1);
-        if(str_len < 0){
+        if(str_len <= 0){
             fprintf(stdout, "server connection lost\n");
             return -1;
         }
@@ -245,3 +279,38 @@ int receive_msg(int sock, char* msg){
 
     return len;
 }
+
+void* send_msg(void *arg) {
+    int sock = *((int*)arg);
+    char s_msg[BUFSZ];
+    while(1) {
+        fgets(s_msg, sizeof(s_msg), stdin);
+        msg[strlen(s_msg)-1] = '\0';
+        if(!strcmp(s_msg,"!exit")) {
+            close(sock);
+            exit(0);
+        }
+        write(sock, s_msg, strlen(s_msg));
+
+        s_msg[0] = ESC; s_msg[1] = '\0';
+        write(sock, s_msg, strlen(s_msg));
+    }
+    return NULL;
+}
+
+void* recv_msg(void *arg) {
+    int sock = *((int*)arg);
+    char r_msg[BUFSZ];
+    int str_len;
+    while(1) {
+        str_len = receive_msg(sock, r_msg);
+        if(str_len < -1){
+            return (void*)-1;
+        }
+
+        fputs(r_msg, stdout);
+        fflush(stdout);
+    }
+    return NULL;
+}
+
