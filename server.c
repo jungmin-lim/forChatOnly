@@ -359,7 +359,7 @@ void *handle_clnt(void *arg){
                 // group not exist
                 if (group_list[group_id] == NULL)
                 {
-                    sprintf(msg, "0group id %d does not exists. Choose other group\n");
+                    sprintf(msg, "0group id %d does not exists. Choose other group\n", group_id);
                     write(clnt_sock, msg, strlen(msg));
 
                     msg[0] = ESC;

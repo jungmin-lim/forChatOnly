@@ -80,8 +80,9 @@ int main(int argc, char* argv[]){
         write(sock, msg, sizeof(msg));
 
         msg[0] = ESC; msg[1] = '\0';
-        write(sock, msg, strlen(sock));       // refresh
-
+        write(sock, msg, strlen(sock));       
+        
+        // refresh
         if(mod == 0){
             continue;
         }
@@ -113,10 +114,10 @@ int main(int argc, char* argv[]){
                 }
                 else{
                     strcpy(msg, buf);
-                    write(sock, msg, strlen(sock));
+                    write(sock, msg, strlen(msg));
 
                     msg[0] = ESC; msg[1] = '\0';
-                    write(sock, msg, strlen(sock));
+                    write(sock, msg, strlen(msg));
                     break;
                 }
             }
@@ -138,10 +139,10 @@ int main(int argc, char* argv[]){
                 }
                 else{
                     strcpy(msg, buf);
-                    write(sock, msg, strlen(sock));
+                    write(sock, msg, strlen(msg));
 
                     msg[0] = ESC; msg[1] = '\0';
-                    write(sock, msg, strlen(sock));
+                    write(sock, msg, strlen(msg));
                     break;
                 }
             }
@@ -152,7 +153,42 @@ int main(int argc, char* argv[]){
 
         // join existing group
         else if(mod == 2){
+            str_len = receive_msg(sock, msg);
+            if(str_len < 0 ){
+                close(sock);
+                return 0;
+            }
 
+            // group join failed
+            if(msg[0] == '0'){
+                fprintf(stdout, &msg[1]);
+                continue;
+            }
+
+            // group join success
+            fprintf(stdout, &msg[1]);
+            fflush(stdout);
+
+            // ask user name
+            while(1){
+                scanf("%s", buf);
+
+                if(strlen(buf) > 63){
+                    fprintf(stdout, "user name should shorter than 64 letters. try again: ");
+                    fflush(stdout);
+                }
+                else{
+                    strcpy(msg, buf);
+                    write(sock, msg, strlen(msg));
+
+                    msg[0] = ESC; msg[1] = '\0';
+                    write(sock, msg, strlen(msg));
+                    break;
+                }
+            }
+
+            // group join complete
+            break;
         }
     }
     return 0;
