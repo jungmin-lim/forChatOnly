@@ -14,14 +14,23 @@
 int lines, cols;
 int mode;
 char* msgptr = NULL;
-int *ypos, *xpos;
+int *ypos = NULL, *xpos = NULL;
 int r_ypos, r_xpos;
+int r_width, r_height;
 WINDOW* remote_window = NULL;
+WINDOW *popup = NULL;
 
 void int_handler(int signo){
-    WINDOW *popup = newwin(10, 40, (LINES - 10)/2, (COLS - 40)/2);
+    if(exit_handler() == 1){
+        endwin();
+        exit(0);
+    }
+}
+
+int exit_handler(){
+    popup = newwin(10, 40, (LINES - 10)/2, (COLS - 40)/2);
     int key;
-    int answer = 0;
+    int answer = 0, l = 1;
     box(popup, '|', '-');
     mvwprintw(popup, 4, 13, "%s", "Want to quit?");
     mvwprintw(popup, 6, 14, "%s", "Yes");
@@ -29,20 +38,11 @@ void int_handler(int signo){
     mvwprintw(popup, 6, 22, "%s", "No");
     wrefresh(popup);
 
-    while(1){
+    while(l){
         key = getch();
         switch(key){
             case '\n':
-                if(answer == 1){
-                    endwin();
-                    exit(0);
-                }
-                else{
-                    touchwin(stdscr);
-                    refresh();
-                    delwin(popup);
-                    return;
-                }
+                l = 0;
                 break;
             case KEY_LEFT:
                 if(answer == 0){
@@ -63,14 +63,18 @@ void int_handler(int signo){
                 }
                 break;
             case 27:
-                touchwin(stdscr);
-                refresh();
-                delwin(popup);
-                return;
+                answer = 0;
+                l = 0;
+                break;
         }
         wmove(popup, 1, 0);
         wrefresh(popup);
     }
+    touchwin(stdscr);
+    refresh();
+    delwin(popup);
+    popup = NULL;
+    return answer;
 }
 
 #ifdef DEBUG
@@ -109,25 +113,31 @@ void init_colorset(){
     init_pair(0, COLOR_WHITE, COLOR_BLACK);
     init_pair(1, COLOR_BLACK, COLOR_WHITE);
 }
-char temp[1000] = "testtesttest";
+
+char temp[1000] = "testtesttesttesttesttesttesttesttest";
+
 int getstring(char* buf, int isChat){
     int i = 0, len = 0, fieldsize = COLS - 2*INPUT_SPACE;
     int key;
-    int* curline;
-    int* col;
+    int starty, startx;
+    int *ytemp, *xtemp;
     if(isChat){
-        col = (int*)malloc(sizeof(int));
-        curline = (int*)malloc(sizeof(int));
-        *col = 0;
-        *curline = LINES-MSG_HEIGHT;
+        ytemp = ypos; xtemp = xpos;
+        xpos = (int*)malloc(sizeof(int));
+        ypos = (int*)malloc(sizeof(int));
+        *xpos = 0;
+        *ypos = LINES-MSG_HEIGHT;
         msgptr = buf;
         init_inputspace();
         move(LINES-MSG_HEIGHT, INPUT_SPACE);
     }
     else{
-        fieldsize = COLS - 7;
-        col = &r_xpos;
-        curline = &r_ypos;
+        fieldsize = r_width - 2;
+        ytemp = ypos; xtemp = xpos;
+        xpos = &r_xpos;
+        ypos = &r_ypos;
+        starty = r_ypos;
+        startx = r_xpos;
     }
 
     while((key = getch()) != '\n'){
@@ -136,64 +146,99 @@ int getstring(char* buf, int isChat){
     
             buf[len] = '\0';
             insert_char(buf, i++, key);
-            (*col)++; len++;
-            if(*col >= fieldsize){
-                (*curline)++;
-                *col = 0;
+            (*xpos)++; len++;
+            if(*xpos >= fieldsize){
+                (*ypos)++;
+                *xpos = 0;
+                if(!isChat) {
+                    *xpos = 1;
+                    if(*ypos > r_height - 2) (*ypos)--;
+                }
             }
-            reset_inputfield(buf, *curline, *col);
+            if(isChat)reset_inputfield(buf, *ypos, *xpos);
+            else reset_remotefield(buf, &starty, startx, *ypos, *xpos);
         }
         else{
             switch(key){
                 case KEY_BACKSPACE:
                     if(i > 0){
-                        (*col)--;
+                        (*xpos)--;
                         buf[len] = '\0';
                         erase_char(buf, --i);
                         len--;
-                        if(len != 0 && *col <= 0){
-                            *col = fieldsize;
-                            (*curline)--;
+                        if(isChat){
+                            if(len != 0 && *xpos <= 0){
+                                *xpos = fieldsize;
+                                (*ypos)--;
+                            }
+                            reset_inputfield(buf, *ypos, *xpos);
                         }
-                        reset_inputfield(buf, *curline, *col);
+                        else{
+                            if(i != 0 && *xpos <= 1){
+                                *xpos = fieldsize;
+                                (*ypos)--;
+                            }
+                            reset_remotefield(buf, &starty, startx, *ypos, *xpos);
+                            wrefresh(remote_window);
+                        }
                     }
                     break;
 
                 case KEY_LEFT:
                     if(i > 0){
-                        i--; (*col)--;
-                        if(i != 0 && *col <= 0){
-                            *col = fieldsize;
-                            (*curline)--;
+                        i--; (*xpos)--;
+                        if(isChat) {
+                            if(i != 0 && *xpos <= 0){
+                                *xpos = fieldsize;
+                                (*ypos)--;
+                            }
+                            move(*ypos, *xpos + INPUT_SPACE);
                         }
-                        move(*curline, *col + INPUT_SPACE);
+                        else {
+                            if(i != 0 && *xpos <= 1){
+                                *xpos = fieldsize;
+                                (*ypos)--;
+                            }
+                            wmove(remote_window, (*ypos), *xpos);
+                            wrefresh(remote_window);
+                        }
                     }
                     break;
 
                 case KEY_RIGHT:
                     if(i < len){
-                        i++; (*col)++;
-                        if(*col >= fieldsize){
-                            *col = 0;
-                            (*curline)++;
+                        i++; (*xpos)++;
+                        if(isChat){
+                            if(*xpos >= fieldsize){
+                                *xpos = 0;
+                                (*ypos)++;
+                            }
+                            move(*ypos, *xpos + INPUT_SPACE);
                         }
-                        move(*curline, *col + INPUT_SPACE);
+                        else{
+                            if(*xpos >= fieldsize){
+                                *xpos = 1;
+                                (*ypos)++;
+                            }
+                            wmove(remote_window, *ypos, *xpos);
+                            wrefresh(remote_window);
+                        }
                     }
                     break;
 
                 case KEY_UP:
-                    if(*curline > LINES - MSG_HEIGHT){
-                        (*curline)--;
+                    if(isChat && *ypos > LINES - MSG_HEIGHT){
+                        (*ypos)--;
                         i -= fieldsize;
-                        move(*curline, *col + INPUT_SPACE);
+                        move(*ypos, *xpos + INPUT_SPACE);
                     }
                     break;
 
                 case KEY_DOWN:
-                    if(i + fieldsize <= len){
-                        (*curline)++;
+                    if(isChat && i + fieldsize <= len){
+                        (*ypos)++;
                         i += fieldsize;
-                        move(*curline, *col + INPUT_SPACE);
+                        move(*ypos, *xpos + INPUT_SPACE);
                     }
                     break;
 
@@ -202,7 +247,11 @@ int getstring(char* buf, int isChat){
                         buf[len] = '\0';
                         erase_char(buf, i);
                         len--;
-                        reset_inputfield(buf, *curline, *col);
+                        if(isChat)reset_inputfield(buf, *ypos, *xpos);
+                        else{
+                            reset_remotefield(buf, &starty, startx, *ypos, *xpos);
+                            wrefresh(remote_window);
+                        }
                     }
                     break;
 
@@ -213,33 +262,36 @@ int getstring(char* buf, int isChat){
                             cols = COLS;
                         }
                         scrl(lines - LINES);
-                        *curline -= lines - LINES;
-                        move(*curline, i + INPUT_SPACE);
+                        *ypos -= lines - LINES;
+                        move(*ypos, i + INPUT_SPACE);
                         refresh();
                         lines = LINES;
                     }
                     break;
                 case KEY_F(1):
                     init_remote();
+                    print_remote(temp);
                     getstring(temp, 0);
-                    sleep(3);
+                    sleep(2);
                     end_remote();
+                    add_bubble(temp, temp, 0);
                     break;
             }
         }
     }
     buf[len] = '\0';
-    msgptr = NULL;
     if(isChat){
-        free(col);
-        free(curline);
+        msgptr = NULL;
+        free(xpos);
+        free(ypos);
     }
+    xpos = xtemp; ypos = ytemp;
     return len;
 }
 
 void init_remote(){
-    int width = COLS - 5, height = LINES - 3;
-    remote_window = newwin(height, width, 3/2, 5/2);
+    r_width = COLS - 5, r_height = LINES - 3;
+    remote_window = newwin(r_height, r_width, 3/2, 5/2);
     box(remote_window, '|', ' ');
     scrollok(remote_window, 1);
     mode = 1;
@@ -248,7 +300,7 @@ void init_remote(){
 }
 
 void print_remote(char* msg){
-    int width = COLS - 7, height = LINES - 5;
+    int width = r_width - 2, height = r_height - 2;
     int cur = width - r_ypos + 1;
     for(int i = 0; i < strlen(msg); i++){
         if(msg[i] != '\n'){
@@ -295,6 +347,28 @@ void reset_inputfield(char* msg, int y, int x){
     move(y, INPUT_SPACE+x);
 }
 
+void reset_remotefield(char* msg, int* starty, int startx, int y, int x){
+    int fieldsize = r_width - 2;
+    int i = 1;
+
+    mvwprintw(remote_window, *starty, startx, "%*s", fieldsize - startx, "");
+    for(int i = (*starty)+1; i < r_height - 2; i++){
+        mvwprintw(remote_window, i, 1, "%*s", fieldsize - 1, "");
+    }
+    mvwprintw(remote_window, *starty, startx, "%.*s", fieldsize - startx, msg);
+    for(int cur = fieldsize - startx; cur < strlen(msg); cur+=fieldsize - 1){
+        mvwprintw(remote_window, (*starty) + i, 1, "%.*s", fieldsize - 1, msg + cur);
+        i++;
+        if((*starty) + i > r_height - 1){
+            (*starty)--;
+            wscrl(remote_window, 1);
+            box(remote_window, '|', ' ');
+        }
+    }
+    wmove(remote_window, y, x);
+    wrefresh(remote_window);
+}
+
 void add_bubble(char* name, char* msg, int color){
     clear_inputspace();
     attrset(COLOR_PAIR(1));
@@ -326,6 +400,7 @@ void add_bubble(char* name, char* msg, int color){
         init_inputspace();
         reset_inputfield(msgptr, *ypos, *xpos);
     }
+    msg[0] = '\0';
     refresh();
 }    
 
