@@ -260,7 +260,7 @@ void *handle_clnt(void *arg){
     clientPointer temp;
     int clnt_sock = *((int *)arg);
     int str_len = 0, group_id, i;
-    char msg[BUFSZ];
+    char msg[BUFSZ], buf[BUFSZ];
 
     while (1){
         /*
@@ -429,8 +429,11 @@ void *handle_clnt(void *arg){
             }
 
             temp = clnt_list[clnt_sock]->next;
+            buf[0] = ESC; buf[1] = '\0';
             while(temp != clnt_list[clnt_sock]){
-                write(clnt_sock, msg, strlen(msg));
+                write(temp->fd, msg, strlen(msg));
+                write(temp->fd, buf, strlen(buf));
+                temp = temp->next;
             }
         }
     }

@@ -71,11 +71,16 @@ int main(int argc, char* argv[]){
                     mod = 2;
                     break;
                 }
+                else{
+                    fprintf(stdout, "Invalid input try again\n");
+                    continue;
+                }
             }
 
             // invalid input
             else{
                 fprintf(stdout, "Invalid input try again\n");
+                continue;
             }
         }
 
@@ -286,7 +291,7 @@ void* send_msg(void *arg) {
     char s_msg[BUFSZ];
     while(1) {
         fgets(s_msg, sizeof(s_msg), stdin);
-        msg[strlen(s_msg)-1] = '\0';
+        s_msg[strlen(s_msg)-1] = '\0';
         if(!strcmp(s_msg,"!exit")) {
             close(sock);
             exit(0);
