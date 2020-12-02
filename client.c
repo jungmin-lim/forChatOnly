@@ -223,6 +223,7 @@ int main(int argc, char* argv[]){
     pthread_join(snd_thread, &thread_return);
     pthread_join(rcv_thread, &thread_return);
 
+    close(sock);
     return 0;
 }
 
