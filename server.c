@@ -40,6 +40,7 @@ void join_group(int, int);
 void exit_group(int, int);
 int receive_msg(int, char*);
 void send_group_list(int);
+void send_user_list(int);
 void *handle_clnt(void *);
 
 // init global variables
@@ -256,11 +257,30 @@ void send_group_list(int clnt_sock){
     return;
 }
 
+void send_user_list(int clnt_sock){
+    char msg[BUFSZ];
+    clientPointer temp = clnt_list[clnt_sock];
+
+    sprintf(msg, "(me) [%d] %s\n", temp->fd, temp->name);
+    write(clnt_sock, msg, strlen(msg));
+    temp = temp->next;
+
+    while(temp != clnt_list[clnt_sock]){
+        sprintf(msg, "[%d] %s\n", temp->fd, temp->name);
+        write(clnt_sock, msg, strlen(msg));
+    }
+
+    msg[0] = ESC; msg[1] = '\0';
+    write(clnt_sock, msg, strlen(msg));
+
+    return;
+}
+
 void *handle_clnt(void *arg){
     clientPointer temp;
     int clnt_sock = *((int *)arg);
     int str_len = 0, group_id, i;
-    char msg[BUFSZ];
+    char msg[BUFSZ], buf[BUFSZ];
 
     while (1){
         /*
@@ -428,9 +448,17 @@ void *handle_clnt(void *arg){
                 return NULL;
             }
 
+            // add user name on message 
+            sprintf(msg, "[%s] %s", clnt_list[clnt_sock]->name, msg);
+
             temp = clnt_list[clnt_sock]->next;
+            buf[0] = ESC; buf[1] = '\0';
+
+            // broadcast message for every user in group
             while(temp != clnt_list[clnt_sock]){
-                write(clnt_sock, msg, strlen(msg));
+                write(temp->fd, msg, strlen(msg));
+                write(temp->fd, buf, strlen(buf));
+                temp = temp->next;
             }
         }
     }

@@ -71,11 +71,16 @@ int main(int argc, char* argv[]){
                     mod = 2;
                     break;
                 }
+                else{
+                    fprintf(stdout, "Invalid input try again\n");
+                    continue;
+                }
             }
 
             // invalid input
             else{
                 fprintf(stdout, "Invalid input try again\n");
+                continue;
             }
         }
 
@@ -223,6 +228,7 @@ int main(int argc, char* argv[]){
     pthread_join(snd_thread, &thread_return);
     pthread_join(rcv_thread, &thread_return);
 
+    close(sock);
     return 0;
 }
 
@@ -236,7 +242,7 @@ void receive_group_list(int sock, char* msg){
     int str_len, len = 0;
     while(1){
         str_len = read(sock, &msg[len], 1);
-        if(str_len < 0){
+        if(str_len <= 0){
             fprintf(stderr, "server connection lost\n");
             exit(1);
         }
@@ -258,6 +264,33 @@ void receive_group_list(int sock, char* msg){
         len++;
     }
     return;
+}
+
+void receive_user_list(int sock, char* msg){
+    int str_len, len = 0;
+    while(1){
+        str_len = read(sock, &msg[len], 1);
+        if(str_len <= 0){
+            fprintf(stderr, "server connection lost\n");
+            exit(1);
+        }
+
+        if(msg[len] == ESC){
+            msg[len] = '\0';
+            fprintf(stdout, "%s", msg);
+            fflush(stdout);
+            break;
+        }
+
+        if(msg[len] == '\n'){
+            msg[len+1] = '\0';
+            fprintf(stdout, "%s", msg);
+            fflush(stdout);
+            len = -1;
+        }
+
+        len++;
+    }
 }
 
 int receive_msg(int sock, char* msg){
@@ -285,7 +318,7 @@ void* send_msg(void *arg) {
     char s_msg[BUFSZ];
     while(1) {
         fgets(s_msg, sizeof(s_msg), stdin);
-        msg[strlen(s_msg)-1] = '\0';
+        s_msg[strlen(s_msg)-1] = '\0';
         if(!strcmp(s_msg,"!exit")) {
             close(sock);
             exit(0);
