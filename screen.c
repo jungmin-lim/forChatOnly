@@ -11,14 +11,14 @@
 #define MSG_SIZE 120
 #define INPUT_SPACE 3
 
-int lines, cols;
-int mode;
-char* msgptr = NULL;
-int *ypos = NULL, *xpos = NULL;
-int r_ypos, r_xpos;
-int r_width, r_height;
-WINDOW* remote_window = NULL;
-WINDOW *popup = NULL;
+static int lines, cols;
+static int mode;
+static char* msgptr = NULL;
+static int *ypos = NULL, *xpos = NULL;
+static int r_ypos, r_xpos;
+static int r_width, r_height;
+static WINDOW* remote_window = NULL;
+static WINDOW *popup = NULL;
 
 void int_handler(int signo){
     if(exit_handler() == 1){
