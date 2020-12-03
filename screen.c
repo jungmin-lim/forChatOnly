@@ -21,10 +21,8 @@ static WINDOW* remote_window = NULL;
 static WINDOW *popup = NULL;
 
 void int_handler(int signo){
-    if(exit_handler() == 1){
-        endwin();
-        exit(0);
-    }
+    endwin();
+    exit(0);
 }
 
 int exit_handler(){
@@ -74,13 +72,16 @@ int exit_handler(){
     refresh();
     delwin(popup);
     popup = NULL;
+    if(answer == 1){
+        endwin();
+    }
     return answer;
 }
 
 #ifdef DEBUG
 int main(){
     int temp = 0;
-    init();
+    init_screen();
     char n[100] = "myname";
     char msg[130] = "hello world";
     while(1){
@@ -93,8 +94,9 @@ int main(){
 }
 #endif
 
-void init(){
+void init_screen(){
     signal(SIGINT, (void*)int_handler);
+    signal(SIGQUIT, (void*)int_handler);
     initscr();
     scrollok(stdscr, TRUE);
     init_colorset();
@@ -113,8 +115,6 @@ void init_colorset(){
     init_pair(0, COLOR_WHITE, COLOR_BLACK);
     init_pair(1, COLOR_BLACK, COLOR_WHITE);
 }
-
-char temp[1000] = "testtesttesttesttesttesttesttesttest";
 
 int getstring(char* buf, int isChat){
     int i = 0, len = 0, fieldsize = COLS - 2*INPUT_SPACE;
@@ -270,11 +270,8 @@ int getstring(char* buf, int isChat){
                     break;
                 case KEY_F(1):
                     init_remote();
-                    print_remote(temp);
-                    getstring(temp, 0);
                     sleep(2);
                     end_remote();
-                    add_bubble(temp, temp, 0);
                     break;
             }
         }
@@ -388,7 +385,7 @@ void add_bubble(char* name, char* msg, int color){
 
     if(name != NULL) {
         move(where+1, space + 8);
-        printw("[%s]", name);
+        printw("%s", name);
     }
     for (int cur = 0; cur < strlen(msg); cur += bubblewidth){
         move(where+2+i, space + 8);
@@ -400,7 +397,6 @@ void add_bubble(char* name, char* msg, int color){
         init_inputspace();
         reset_inputfield(msgptr, *ypos, *xpos);
     }
-    msg[0] = '\0';
     refresh();
 }    
 

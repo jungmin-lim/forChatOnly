@@ -2,10 +2,10 @@
 #define _SCREEN_H_
 
 int exit_handler();
-void init();
+void init_screen();
 void init_colorset();
 void add_bubble(char* name, char* msg, int color);
-int getstring(char* buf, int);
+int getstring(char* buf, int isChat);
 void clear_inputspace();
 void init_inputspace();
 void reset_inputfield(char*, int, int);

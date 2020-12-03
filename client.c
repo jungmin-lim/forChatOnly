@@ -223,7 +223,7 @@ int main(int argc, char* argv[]){
 
     }
 
-    init();
+    init_screen();
     // start chat
     pthread_create(&snd_thread, NULL, send_msg, (void*)&sock);
     pthread_create(&rcv_thread, NULL, recv_msg, (void*)&sock);
@@ -320,12 +320,12 @@ void* send_msg(void *arg) {
     int sock = *((int*)arg);
     char s_msg[BUFSZ];
     while(1) {
+        s_msg[0] = '\0';
         getstring(s_msg, 1);
         // fgets(s_msg, sizeof(s_msg), stdin);
         // s_msg[strlen(s_msg)-1] = '\0';
         if(!strcmp(s_msg,"!exit")) {
             if(exit_handler() == 1){
-                endwin();
                 close(sock);
                 exit(0);
             }
