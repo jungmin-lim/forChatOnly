@@ -15,9 +15,19 @@
 
 int main(){
 	FILE* fp;
-	char command[BUF_LENGTH];
+	int i;
+	char command[BUF_LENGTH], encrypt[BUF_LENGTH], decrypt[BUF_LENGTH];
 	char readbuf[BUF_LENGTH];
-	scanf("%s", command);
+	gets(command);
+	for (i = 0; i < strlen(command); i++) {
+		encrypt[i] = command[i] + 3;
+	}
+	puts(encrypt);
+	for (i = 0; i < strlen(command); i++) {
+		decrypt[i] = encrypt[i] + 3;
+	}
+	puts(decrypt);
+	
 	fp=popen(command, "r");
 	while (fgets(readbuf, BUF_LENGTH, fp) != NULL) {
 		printf("%s", readbuf);
