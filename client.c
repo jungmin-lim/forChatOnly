@@ -331,6 +331,8 @@ void* send_msg(void *arg) {
             }
 
         }
+
+        add_bubble(NULL, s_msg, 0);
         write(sock, s_msg, strlen(s_msg));
 
         s_msg[0] = ESC; s_msg[1] = '\0';
