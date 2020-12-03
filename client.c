@@ -242,7 +242,7 @@ void receive_group_list(int sock, char* msg){
     int str_len, len = 0;
     while(1){
         str_len = read(sock, &msg[len], 1);
-        if(str_len < 0){
+        if(str_len <= 0){
             fprintf(stderr, "server connection lost\n");
             exit(1);
         }
@@ -264,6 +264,33 @@ void receive_group_list(int sock, char* msg){
         len++;
     }
     return;
+}
+
+void receive_user_list(int sock, char* msg){
+    int str_len, len = 0;
+    while(1){
+        str_len = read(sock, &msg[len], 1);
+        if(str_len <= 0){
+            fprintf(stderr, "server connection lost\n");
+            exit(1);
+        }
+
+        if(msg[len] == ESC){
+            msg[len] = '\0';
+            fprintf(stdout, "%s", msg);
+            fflush(stdout);
+            break;
+        }
+
+        if(msg[len] == '\n'){
+            msg[len+1] = '\0';
+            fprintf(stdout, "%s", msg);
+            fflush(stdout);
+            len = -1;
+        }
+
+        len++;
+    }
 }
 
 int receive_msg(int sock, char* msg){

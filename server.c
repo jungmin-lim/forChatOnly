@@ -448,8 +448,13 @@ void *handle_clnt(void *arg){
                 return NULL;
             }
 
+            // add user name on message 
+            sprintf(msg, "[%s] %s", clnt_list[clnt_sock]->name, msg);
+
             temp = clnt_list[clnt_sock]->next;
             buf[0] = ESC; buf[1] = '\0';
+
+            // broadcast message for every user in group
             while(temp != clnt_list[clnt_sock]){
                 write(temp->fd, msg, strlen(msg));
                 write(temp->fd, buf, strlen(buf));
