@@ -40,6 +40,7 @@ void join_group(int, int);
 void exit_group(int, int);
 int receive_msg(int, char*);
 void send_group_list(int);
+void send_user_list(int);
 void *handle_clnt(void *);
 
 // init global variables
@@ -250,6 +251,25 @@ void send_group_list(int clnt_sock){
     write(clnt_sock, msg, strlen(msg));
 
     // write ESC to indicate end of list
+    msg[0] = ESC; msg[1] = '\0';
+    write(clnt_sock, msg, strlen(msg));
+
+    return;
+}
+
+void send_user_list(int clnt_sock){
+    char msg[BUFSZ];
+    clientPointer temp = clnt_list[clnt_sock];
+
+    sprintf(msg, "(me) [%d] %s\n", temp->fd, temp->name);
+    write(clnt_sock, msg, strlen(msg));
+    temp = temp->next;
+
+    while(temp != clnt_list[clnt_sock]){
+        sprintf(msg, "[%d] %s\n", temp->fd, temp->name);
+        write(clnt_sock, msg, strlen(msg));
+    }
+
     msg[0] = ESC; msg[1] = '\0';
     write(clnt_sock, msg, strlen(msg));
 
