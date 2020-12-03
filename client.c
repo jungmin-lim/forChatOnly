@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <pthread.h>
 
+#include "screen.h"
+
 #define BUFSZ 1024
 #define NAMESZ 64
 #define ESC (char)27
@@ -66,7 +68,7 @@ int main(int argc, char* argv[]){
                 break;
             }
             else if(buf[0] >= '0' && buf[0] <= '9'){
-                sscanf(msg, "%d", &group_id);
+                sscanf(buf, "%d", &group_id);
                 if(0 <= group_id && group_id < 32){
                     mod = 2;
                     break;
@@ -221,6 +223,7 @@ int main(int argc, char* argv[]){
 
     }
 
+    init();
     // start chat
     pthread_create(&snd_thread, NULL, send_msg, (void*)&sock);
     pthread_create(&rcv_thread, NULL, recv_msg, (void*)&sock);
@@ -317,11 +320,16 @@ void* send_msg(void *arg) {
     int sock = *((int*)arg);
     char s_msg[BUFSZ];
     while(1) {
-        fgets(s_msg, sizeof(s_msg), stdin);
-        s_msg[strlen(s_msg)-1] = '\0';
+        getstring(s_msg, 1);
+        // fgets(s_msg, sizeof(s_msg), stdin);
+        // s_msg[strlen(s_msg)-1] = '\0';
         if(!strcmp(s_msg,"!exit")) {
-            close(sock);
-            exit(0);
+            if(exit_handler() == 1){
+                endwin();
+                close(sock);
+                exit(0);
+            }
+
         }
         write(sock, s_msg, strlen(s_msg));
 
@@ -333,16 +341,19 @@ void* send_msg(void *arg) {
 
 void* recv_msg(void *arg) {
     int sock = *((int*)arg);
-    char r_msg[BUFSZ];
+    char r_msg[BUFSZ], msg[BUFSZ], name[BUFSZ];
     int str_len;
     while(1) {
         str_len = receive_msg(sock, r_msg);
         if(str_len < -1){
+            close(sock);
             return (void*)-1;
         }
 
-        fputs(r_msg, stdout);
-        fflush(stdout);
+        sscanf(r_msg, "%s %s", name, msg);
+        add_bubble(name, msg, 0);
+        // fputs(r_msg, stdout);
+        // fflush(stdout);
     }
     return NULL;
 }

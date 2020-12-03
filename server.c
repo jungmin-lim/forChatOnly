@@ -449,7 +449,8 @@ void *handle_clnt(void *arg){
             }
 
             // add user name on message 
-            sprintf(msg, "[%s] %s", clnt_list[clnt_sock]->name, msg);
+            strcpy(buf, msg);
+            sprintf(msg, "[%s] %s", clnt_list[clnt_sock]->name, buf);
 
             temp = clnt_list[clnt_sock]->next;
             buf[0] = ESC; buf[1] = '\0';
