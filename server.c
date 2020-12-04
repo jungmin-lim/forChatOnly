@@ -436,13 +436,22 @@ void *handle_clnt(void *arg){
 
         fprintf(stdout, "receiving messages\n");
         // receive message and broadcast
-        while(clnt_list[clnt_sock]->state == 1){
+        while(1){
             str_len = receive_msg(clnt_sock, msg);
             if(str_len < 0){
                 exit_group(group_id, clnt_sock);
                 remove_clnt(clnt_sock);
                 close(clnt_sock);
                 return NULL;
+            }
+
+            // check if remote message
+            if(msg[0] == '#'){
+                // send user list
+                if(!strcmp(msg, "#init remote")){
+                    send_user_list(clnt_sock);
+                    continue;
+                }
             }
 
             // add user name on message 
