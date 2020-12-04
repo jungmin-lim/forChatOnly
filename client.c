@@ -10,10 +10,12 @@
 
 #define BUFSZ 1024
 #define NAMESZ 64
+#define CLNTSZ 1024
 #define ESC (char)27
 
 void error_handling(char*);
 void receive_group_list(int, char*);
+int receive_user_list(int, int*, char**);
 int receive_msg(int, char*);
 void* send_msg(void*);
 void* recv_msg(void*);
@@ -23,6 +25,8 @@ char msg[BUFSZ], buf[BUFSZ];
 int main(int argc, char* argv[]){
     int sock, group_id;
     int str_len, pos, mod;
+    int user_count, user_id_list[CLNTSZ];
+    char user_name_list[CLNTSZ][NAMESZ];
     struct sockaddr_in serv_addr;
     pthread_t snd_thread, rcv_thread;
     void* thread_return;
@@ -269,31 +273,37 @@ void receive_group_list(int sock, char* msg){
     return;
 }
 
-void receive_user_list(int sock, char* msg){
+int receive_user_list(int sock, int* user_id_list, char** user_name_list){
     int str_len, len = 0;
+    int user_count = 0, user_id;
+    int buf[BUFSIZ], user_name[NAMESZ];
     while(1){
-        str_len = read(sock, &msg[len], 1);
+        str_len = read(sock, &buf[len], 1);
         if(str_len <= 0){
             fprintf(stderr, "server connection lost\n");
             exit(1);
         }
 
-        if(msg[len] == ESC){
-            msg[len] = '\0';
-            fprintf(stdout, "%s", msg);
-            fflush(stdout);
+        if(buf[len] == ESC){
+
             break;
         }
 
-        if(msg[len] == '\n'){
-            msg[len+1] = '\0';
-            fprintf(stdout, "%s", msg);
-            fflush(stdout);
+        if(buf[len] == '\n'){
+            buf[len] = '\0';
+            sscanf(buf, "%d %s", &user_id, user_name);
+
+            user_id_list[user_count] = user_id;
+            strcpy(user_name_list[user_count], user_name);
+
+            user_count++;
             len = -1;
         }
 
         len++;
     }
+
+    return user_count;
 }
 
 int receive_msg(int sock, char* msg){
@@ -329,7 +339,6 @@ void* send_msg(void *arg) {
                 close(sock);
                 exit(0);
             }
-
         }
 
         add_bubble(NULL, s_msg, 0);
