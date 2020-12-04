@@ -279,7 +279,7 @@ void receive_group_list(int sock, char* msg){
 int receive_user_list(int sock){
     int str_len, len = 0;
     int user_count = 0, user_id;
-    int buf[BUFSIZ], user_name[NAMESZ];
+    char buf[BUFSIZ], user_name[NAMESZ];
 
     sprintf(buf, "#init remote");
     write(sock, buf, strlen(buf));
@@ -295,7 +295,7 @@ int receive_user_list(int sock){
         }
 
         if(buf[len] == ESC){
-
+            buf[len] = '\0';
             break;
         }
 
@@ -360,15 +360,6 @@ void* send_msg(void *arg) {
 
                 s_msg[0] = ESC; s_msg[1] = '\0';
                 write(sock, s_msg, strlen(s_msg));
-
-                user_count = receive_user_list(sock);
-                remote_sock = choose_from_array(user_count, user_id_list, user_name_list);
-
-                sprintf(s_msg, "%d", remote_sock);
-                write(sock, s_msg, strlen(s_msg));
-
-                s_msg[0] = ESC; s_msg[1] = '\0';
-                write(sock, s_msg, strlen(s_msg));
             }
             else{
                 sprintf(s_msg, "invalid command try #init remote");
@@ -391,7 +382,7 @@ void* send_msg(void *arg) {
 
 void* recv_msg(void *arg) {
     int sock = *((int*)arg), remote_id;
-    char r_msg[BUFSZ], msg[BUFSZ], name[NAMESZ];
+    char r_msg[BUFSZ], msg[BUFSZ], name[NAMESZ], s_msg[BUFSIZ];
     int str_len;
 
     while(1) {
@@ -409,7 +400,7 @@ void* recv_msg(void *arg) {
 
         else{
             if(!strncmp(r_msg, "#init remote", 12)){
-                sscanf(r_msg, "#init remote from %d %[^\t\n]", remote_id, name);
+                sscanf(r_msg, "#init remote from %d %[^\t\n]", &remote_id, name);
                 is_chat = !remote_request(name);
 
                 if(!is_chat){
@@ -424,6 +415,19 @@ void* recv_msg(void *arg) {
                     r_msg[0] = ESC; r_msg[1] = '\0';
                     write(sock, r_msg, strlen(r_msg));
                 }
+            }
+
+            else if(!strcmp(r_msg, "#user list")){
+                user_count = receive_user_list(sock);
+                sleep(10);
+                remote_id = choose_from_array(user_count, user_id_list, user_name_list);
+
+                sprintf(s_msg, "%d", remote_id);
+                write(sock, s_msg, strlen(s_msg));
+
+                s_msg[0] = ESC; s_msg[1] = '\0';
+                write(sock, s_msg, strlen(s_msg));
+                init_remote();
             }
 
             else if(!strcmp(r_msg, "#accepted remote")){

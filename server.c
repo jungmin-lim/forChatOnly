@@ -263,6 +263,11 @@ void send_user_list(int clnt_sock){
     char msg[BUFSZ];
     clientPointer temp = clnt_list[clnt_sock];
 
+    strcpy(msg, "#user list");
+    write(clnt_sock, msg, strlen(msg));
+    msg[0] = ESC; msg[1] = '\0';
+    write(clnt_sock, msg, strlen(msg));
+
     temp = temp->next;
     while(temp != clnt_list[clnt_sock]){
         sprintf(msg, "%d %s\n", temp->fd, temp->name);
@@ -463,6 +468,7 @@ void *handle_clnt(void *arg){
                         send_user_list(clnt_sock);
 
                         str_len = receive_msg(clnt_sock, msg);
+                        printf("msg: %s strlen: %d\n", msg, str_len);
                         sscanf(msg, "%d", &clnt_list[clnt_sock]->remote_id);
                         clnt_list[clnt_list[clnt_sock]->remote_id]->remote_id = clnt_sock;
 
@@ -486,19 +492,20 @@ void *handle_clnt(void *arg){
                         clnt_list[clnt_sock]->remote_id = -1;
                     }
                 }
+                else{
+                    // add user name on message 
+                    strcpy(buf, msg);
+                    sprintf(msg, "[%s] %s", clnt_list[clnt_sock]->name, buf);
 
-                // add user name on message 
-                strcpy(buf, msg);
-                sprintf(msg, "[%s] %s", clnt_list[clnt_sock]->name, buf);
+                    temp = clnt_list[clnt_sock]->next;
+                    buf[0] = ESC; buf[1] = '\0';
 
-                temp = clnt_list[clnt_sock]->next;
-                buf[0] = ESC; buf[1] = '\0';
-
-                // broadcast message for every user in group
-                while(temp != clnt_list[clnt_sock]){
-                    write(temp->fd, msg, strlen(msg));
-                    write(temp->fd, buf, strlen(buf));
-                    temp = temp->next;
+                    // broadcast message for every user in group
+                    while(temp != clnt_list[clnt_sock]){
+                        write(temp->fd, msg, strlen(msg));
+                        write(temp->fd, buf, strlen(buf));
+                        temp = temp->next;
+                    }
                 }
             }
 

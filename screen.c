@@ -25,14 +25,16 @@ void clear_inputspace();
 void init_inputspace();
 void reset_inputfield(char*, int, int);
 void reset_remotefield(char* msg, int *starty, int startx, int y, int x);
+int dialog_yes_or_no(char* msg);
 
 void int_handler(int signo){
     endwin();
     exit(0);
 }
 
-int exit_handler(){
+int dialog_yes_or_no(char* msg){
     popup = newwin(10, 40, (LINES - 10)/2, (COLS - 40)/2);
+    keypad(popup, TRUE);
     int key;
     int answer = 0, l = 1;
     box(popup, '|', '-');
@@ -43,7 +45,7 @@ int exit_handler(){
     wrefresh(popup);
 
     while(l){
-        key = getch();
+        key = wgetch(popup);
         switch(key){
             case '\n':
                 l = 0;
@@ -84,55 +86,15 @@ int exit_handler(){
     return answer;
 }
 
+int exit_handler(){
+    return dialog_yes_or_no("Want to quit?");
+}
+
 int remote_request(char* msg){
-    popup = newwin(10, 40, (LINES - 10)/2, (COLS - 40)/2);
-    int key;
-    int answer = 0, l = 1;
-    box(popup, '|', '-');
-    mvwprintw(popup, 4, 13, "remote access requested from %s", msg);
-    mvwprintw(popup, 6, 14, "%s", "Yes");
-    wattrset(popup, A_STANDOUT);
-    mvwprintw(popup, 6, 22, "%s", "No");
-    wrefresh(popup);
-
-    while(l){
-        key = getch();
-        switch(key){
-            case '\n':
-                l = 0;
-                break;
-            case KEY_LEFT:
-                if(answer == 0){
-                    wattron(popup, A_STANDOUT);
-                    mvwprintw(popup, 6, 14, "%s", "Yes");
-                    wattroff(popup, A_STANDOUT);
-                    mvwprintw(popup, 6, 22, "%s", "No");
-                    answer = 1;
-                }
-                break;
-            case KEY_RIGHT:
-                if(answer == 1){
-                    wattroff(popup, A_STANDOUT);
-                    mvwprintw(popup, 6, 14, "%s", "Yes");
-                    wattron(popup, A_STANDOUT);
-                    mvwprintw(popup, 6, 22, "%s", "No");
-                    answer = 0;
-                }
-                break;
-            case 27:
-                answer = 0;
-                l = 0;
-                break;
-        }
-        wmove(popup, 1, 0);
-        wrefresh(popup);
-    }
-    touchwin(stdscr);
-    refresh();
-    delwin(popup);
-    popup = NULL;
-
-    return answer;
+    char buf[BUFSIZ];
+    sprintf(buf, "remote access requested from %s", msg);
+    
+    return dialog_yes_or_no(buf);
 }
 
 #ifdef DEBUG
@@ -182,6 +144,7 @@ int getstring(char* buf, int isChat){
     int key;
     int starty, startx;
     int *ytemp, *xtemp;
+    
     if(isChat){
         ytemp = ypos; xtemp = xpos;
         xpos = (int*)malloc(sizeof(int));
@@ -393,6 +356,7 @@ int choose_from_array(int count, int* id, char name[][NAMESZ]){
     WINDOW* list_popup = newwin(count+2, NAMESZ + 8, (LINES - count + 2)/2, (COLS - NAMESZ + 8)/2);
     int c = -1;
     int ans = 0, loop = 1;
+    keypad(list_popup, true);
     box(list_popup, '|', '-');
     do{
         switch(c){
@@ -416,7 +380,7 @@ int choose_from_array(int count, int* id, char name[][NAMESZ]){
                 wattroff(list_popup, A_STANDOUT);
         }
         wrefresh(list_popup);
-    } while(loop && (c = getch()));
+    } while(loop && (c = wgetch(list_popup)));
     touchwin(stdscr);
     refresh();
     delwin(list_popup);
