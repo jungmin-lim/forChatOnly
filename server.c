@@ -261,10 +261,7 @@ void send_user_list(int clnt_sock){
     char msg[BUFSZ];
     clientPointer temp = clnt_list[clnt_sock];
 
-    sprintf(msg, "(me) %d %s\n", temp->fd, temp->name);
-    write(clnt_sock, msg, strlen(msg));
     temp = temp->next;
-
     while(temp != clnt_list[clnt_sock]){
         sprintf(msg, "%d %s\n", temp->fd, temp->name);
         write(clnt_sock, msg, strlen(msg));
