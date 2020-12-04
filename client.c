@@ -281,12 +281,6 @@ int receive_user_list(int sock){
     int user_count = 0, user_id;
     char buf[BUFSIZ], user_name[NAMESZ];
 
-    sprintf(buf, "#init remote");
-    write(sock, buf, strlen(buf));
-
-    buf[0] = ESC; buf[1] = '\0';
-    write(sock, buf, strlen(buf));
-
     while(1){
         str_len = read(sock, &buf[len], 1);
         if(str_len <= 0){
@@ -436,7 +430,7 @@ void* recv_msg(void *arg) {
             }
 
             else{
-                sscanf(r_msg, "%s %s", name, msg);
+                sscanf(r_msg, "%s %[^\t\n]", name, msg);
                 add_bubble(name, msg, 0);
             }
             // fputs(r_msg, stdout);
