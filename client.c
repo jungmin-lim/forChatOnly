@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <curses.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <pthread.h>
@@ -382,8 +383,9 @@ void* recv_msg(void *arg) {
     while(1) {
         str_len = receive_msg(sock, r_msg);
         if(str_len < 0){
+            endwin();
             close(sock);
-            return (void*)-1;
+            exit(1);
         }
 
         // remote
@@ -413,7 +415,6 @@ void* recv_msg(void *arg) {
 
             else if(!strcmp(r_msg, "#user list")){
                 user_count = receive_user_list(sock);
-                sleep(10);
                 remote_id = choose_from_array(user_count, user_id_list, user_name_list);
 
                 sprintf(s_msg, "%d", remote_id);
