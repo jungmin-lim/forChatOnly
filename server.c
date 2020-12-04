@@ -478,7 +478,7 @@ void *handle_clnt(void *arg){
                         write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
 
                         msg[0] = ESC; msg[0] = '\0';
-                        write(remote_id, msg, strlen(msg));
+                        write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
                     }
 
                     if(!strcmp(msg, "#accepted remote")){
