@@ -270,8 +270,10 @@ void send_user_list(int clnt_sock){
 
     temp = temp->next;
     while(temp != clnt_list[clnt_sock]){
-        sprintf(msg, "%d %s\n", temp->fd, temp->name);
-        write(clnt_sock, msg, strlen(msg));
+        if(temp->state < 2){
+            sprintf(msg, "%d %s\n", temp->fd, temp->name);
+            write(clnt_sock, msg, strlen(msg));
+        }
 
         temp = temp->next;
     }
