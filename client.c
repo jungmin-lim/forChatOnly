@@ -354,21 +354,26 @@ void* send_msg(void *arg) {
         }
 
         // remote
-        // TODO: need to deal with #
-        else if(!strcmp(s_msg, "#init remote")){
-            write(sock, s_msg, strlen(s_msg));
+        if(s_msg[0] == '#'){
+            if(!strcmp(s_msg, "#init remote")){
+                write(sock, s_msg, strlen(s_msg));
 
-            s_msg[0] = ESC; s_msg[1] = '\0';
-            write(sock, s_msg, strlen(s_msg));
+                s_msg[0] = ESC; s_msg[1] = '\0';
+                write(sock, s_msg, strlen(s_msg));
 
-            user_count = receive_user_list(sock);
-            remote_sock = choose_from_array(user_count, user_id_list, user_name_list);
+                user_count = receive_user_list(sock);
+                remote_sock = choose_from_array(user_count, user_id_list, user_name_list);
 
-            sprintf(s_msg, "%d", remote_sock);
-            write(sock, s_msg, strlen(s_msg));
+                sprintf(s_msg, "%d", remote_sock);
+                write(sock, s_msg, strlen(s_msg));
 
-            s_msg[0] = ESC; s_msg[1] = '\0';
-            write(sock, s_msg, strlen(s_msg));
+                s_msg[0] = ESC; s_msg[1] = '\0';
+                write(sock, s_msg, strlen(s_msg));
+            }
+            else{
+                sprintf(s_msg, "invalid command try #init remote");
+                add_bubble(NULL, s_msg, 0);
+            }
         }
 
         // normal chat
@@ -396,26 +401,44 @@ void* recv_msg(void *arg) {
             return (void*)-1;
         }
 
-        if(!strncmp(r_msg, "#init remote", 12)){
-            sscanf(r_msg, "#init remote from %d %[^\t\n]", remote_id, name);
-            is_chat = !remote_request(name);
-
-            if(!is_chat){
-                write(sock, "#accepted remote", strlen("#accepted remote"));
-                r_msg[0] = ESC; r_msg[1] = '\0';
-                write(sock, r_msg, strlen(r_msg));
-
-            }
-            else{
-                write(sock, "#denied remote", strlen("#denied remote"));
-                r_msg[0] = ESC; r_msg[1] = '\0';
-                write(sock, r_msg, strlen(r_msg));
-            }
+        // remote
+        if(!is_chat){
+            // TODO: add remote feature (kyuhwan)
+            print_remote(r_msg);
         }
-        sscanf(r_msg, "%s %s", name, msg);
-        add_bubble(name, msg, 0);
-        // fputs(r_msg, stdout);
-        // fflush(stdout);
+
+        else{
+            if(!strncmp(r_msg, "#init remote", 12)){
+                sscanf(r_msg, "#init remote from %d %[^\t\n]", remote_id, name);
+                is_chat = !remote_request(name);
+
+                if(!is_chat){
+                    write(sock, "#accepted remote", strlen("#accepted remote"));
+                    r_msg[0] = ESC; r_msg[1] = '\0';
+                    write(sock, r_msg, strlen(r_msg));
+                    init_remote();
+                }
+
+                else{
+                    write(sock, "#denied remote", strlen("#denied remote"));
+                    r_msg[0] = ESC; r_msg[1] = '\0';
+                    write(sock, r_msg, strlen(r_msg));
+                }
+            }
+
+            else if(!strcmp(r_msg, "#accepted remote")){
+                is_chat = 0;
+                init_remote();
+            }
+
+            else{
+                sscanf(r_msg, "%s %s", name, msg);
+                add_bubble(name, msg, 0);
+            }
+            // fputs(r_msg, stdout);
+            // fflush(stdout);
+        }
+
     }
     return NULL;
 }

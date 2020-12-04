@@ -449,44 +449,59 @@ void *handle_clnt(void *arg){
                 return NULL;
             }
 
-            // check if remote message
-            if(msg[0] == '#'){
-                // client requested user list. send user list
-                if(!strcmp(msg, "#init remote")){
-                    send_user_list(clnt_sock);
 
-                    str_len = receive_msg(clnt_sock, msg);
-                    sscanf(msg, "%d", &remote_id);
+            if(clnt_list[clnt_sock]->state == 2){
+                write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
+                msg[0] = ESC; msg[1] = '\0';
+                write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
+            }
+            else{
+                // check if remote message
+                if(msg[0] == '#'){
+                    // client requested user list. send user list
+                    if(!strcmp(msg, "#init remote")){
+                        send_user_list(clnt_sock);
 
-                    sprintf(msg, "#init remote from %d %s", clnt_sock, clnt_list[clnt_sock]->name);
-                    write(remote_id, msg, strlen(msg));
+                        str_len = receive_msg(clnt_sock, msg);
+                        sscanf(msg, "%d", &clnt_list[clnt_sock]->remote_id);
+                        clnt_list[clnt_list[clnt_sock]->remote_id]->remote_id = clnt_sock;
 
-                    msg[0] = ESC; msg[0] = '\0';
-                    write(remote_id, msg, strlen(msg));
+                        sprintf(msg, "#init remote from %d %s", clnt_sock, clnt_list[clnt_sock]->name);
+                        write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
+
+                        msg[0] = ESC; msg[0] = '\0';
+                        write(remote_id, msg, strlen(msg));
+                    }
+
+                    if(!strcmp(msg, "#accepted remote")){
+                        clnt_list[clnt_sock]->state = 2;
+                        clnt_list[clnt_list[clnt_sock]->remote_id]->state = 2;
+
+                        write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
+                        msg[0] = ESC; msg[1] = '\0';
+                        write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
+                    }
+                    if(!strcmp(msg, "#denied remote")){
+                        clnt_list[clnt_list[clnt_sock]->remote_id]->remote_id = -1;
+                        clnt_list[clnt_sock]->remote_id = -1;
+                    }
                 }
 
-                if(!strcmp(msg, "#accepted remote")){
-                    
-                    
-                }
-                if(!strcmp(msg, "#denied remote")){
+                // add user name on message 
+                strcpy(buf, msg);
+                sprintf(msg, "[%s] %s", clnt_list[clnt_sock]->name, buf);
 
+                temp = clnt_list[clnt_sock]->next;
+                buf[0] = ESC; buf[1] = '\0';
+
+                // broadcast message for every user in group
+                while(temp != clnt_list[clnt_sock]){
+                    write(temp->fd, msg, strlen(msg));
+                    write(temp->fd, buf, strlen(buf));
+                    temp = temp->next;
                 }
             }
 
-            // add user name on message 
-            strcpy(buf, msg);
-            sprintf(msg, "[%s] %s", clnt_list[clnt_sock]->name, buf);
-
-            temp = clnt_list[clnt_sock]->next;
-            buf[0] = ESC; buf[1] = '\0';
-
-            // broadcast message for every user in group
-            while(temp != clnt_list[clnt_sock]){
-                write(temp->fd, msg, strlen(msg));
-                write(temp->fd, buf, strlen(buf));
-                temp = temp->next;
-            }
         }
     }
 }
