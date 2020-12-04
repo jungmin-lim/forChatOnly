@@ -265,6 +265,8 @@ void send_user_list(int clnt_sock){
     while(temp != clnt_list[clnt_sock]){
         sprintf(msg, "%d %s\n", temp->fd, temp->name);
         write(clnt_sock, msg, strlen(msg));
+
+        temp = temp->next;
     }
 
     msg[0] = ESC; msg[1] = '\0';
@@ -447,7 +449,7 @@ void *handle_clnt(void *arg){
 
             // check if remote message
             if(msg[0] == '#'){
-                // send user list
+                // client requested user list. send user list
                 if(!strcmp(msg, "#init remote")){
                     send_user_list(clnt_sock);
                     continue;

@@ -15,24 +15,24 @@
 
 void error_handling(char*);
 void receive_group_list(int, char*);
-int receive_user_list(int, int*, char**);
+int receive_user_list(int);
 int receive_msg(int, char*);
 void* send_msg(void*);
 void* recv_msg(void*);
 
 char msg[BUFSZ], buf[BUFSZ];
+int user_count, user_id_list[CLNTSZ];
+char user_name_list[CLNTSZ][NAMESZ];
 
 int main(int argc, char* argv[]){
     int sock, group_id;
     int str_len, pos, mod;
-    int user_count, user_id_list[CLNTSZ];
-    char user_name_list[CLNTSZ][NAMESZ];
     struct sockaddr_in serv_addr;
     pthread_t snd_thread, rcv_thread;
     void* thread_return;
     
     if(argc != 3){
-        fprintf(stderr, "usage: %s <hostIP> <port>\n", argv[1]);
+        fprintf(stderr, "usage: %s <hostIP> <port>\n", argv[0]);
         exit(1);
     }
 
@@ -273,7 +273,7 @@ void receive_group_list(int sock, char* msg){
     return;
 }
 
-int receive_user_list(int sock, int* user_id_list, char** user_name_list){
+int receive_user_list(int sock){
     int str_len, len = 0;
     int user_count = 0, user_id;
     int buf[BUFSIZ], user_name[NAMESZ];
@@ -341,6 +341,7 @@ void* send_msg(void *arg) {
         getstring(s_msg, 1);
         // fgets(s_msg, sizeof(s_msg), stdin);
         // s_msg[strlen(s_msg)-1] = '\0';
+
         if(!strcmp(s_msg,"!exit")) {
             if(exit_handler() == 1){
                 close(sock);
@@ -348,11 +349,21 @@ void* send_msg(void *arg) {
             }
         }
 
-        add_bubble(NULL, s_msg, 0);
-        write(sock, s_msg, strlen(s_msg));
+        // remote
+        else if(!strcmp(s_msg, "#init remote")){
+            user_count = receive_user_list(sock);
+            
+        }
 
-        s_msg[0] = ESC; s_msg[1] = '\0';
-        write(sock, s_msg, strlen(s_msg));
+        // normal chat
+        else{
+            add_bubble(NULL, s_msg, 0);
+            write(sock, s_msg, strlen(s_msg));
+
+            s_msg[0] = ESC; s_msg[1] = '\0';
+            write(sock, s_msg, strlen(s_msg));
+        }
+
     }
     return NULL;
 }
