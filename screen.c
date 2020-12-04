@@ -20,6 +20,12 @@ static int r_width, r_height;
 static WINDOW* remote_window = NULL;
 static WINDOW *popup = NULL;
 
+void init_colorset();
+void clear_inputspace();
+void init_inputspace();
+void reset_inputfield(char*, int, int);
+void reset_remotefield(char* msg, int *starty, int startx, int y, int x);
+
 void int_handler(int signo){
     endwin();
     exit(0);
@@ -82,12 +88,16 @@ int exit_handler(){
 int main(){
     int temp = 0;
     init_screen();
-    char n[100] = "myname";
     char msg[130] = "hello world";
+    int id[3] = {3, 4, 5};
+    char name[3][64] = {"hello", "my", "name is screen.c"};
     while(1){
         if(getstring(msg, 1) > 0){
             add_bubble(NULL, msg, temp);
         }
+        temp = choose_from_array(3, id, name);
+        sprintf(msg, "%d", temp);
+        add_bubble(NULL, msg, 0);
     }
     endwin();
     return 0;
@@ -328,6 +338,40 @@ void end_remote(){
     remote_window = NULL;
 }
 
+int choose_from_array(int count, int* id, char name[][NAMESZ]){
+    WINDOW* list_popup = newwin(count+2, NAMESZ + 8, (LINES - count + 2)/2, (COLS - NAMESZ + 8)/2);
+    int c = -1;
+    int ans = 0, loop = 1;
+    box(list_popup, '|', '-');
+    do{
+        switch(c){
+            case KEY_UP:
+                if(ans > 0) ans--;
+                break;
+            case KEY_DOWN:
+                if(ans < count - 1) ans++;
+                break;
+            case '\n':
+                loop = 0;
+                break;
+        }
+        for(int i = 0; loop && i < count; i++){
+            if(i == ans)
+                wattron(list_popup, A_STANDOUT);
+
+            mvwprintw(list_popup, i + 1, 2, "%d: %-*s", id[i], NAMESZ - 2, name[i]);
+
+            if(i == ans)
+                wattroff(list_popup, A_STANDOUT);
+        }
+        wrefresh(list_popup);
+    } while(loop && (c = getch()));
+    touchwin(stdscr);
+    refresh();
+    delwin(list_popup);
+    return id[ans];
+}
+
 void reset_inputfield(char* msg, int y, int x){
     int fieldsize = COLS - 2*INPUT_SPACE;
     int i = 0;
@@ -349,7 +393,7 @@ void reset_remotefield(char* msg, int* starty, int startx, int y, int x){
     int i = 1;
 
     mvwprintw(remote_window, *starty, startx, "%*s", fieldsize - startx, "");
-    for(int i = (*starty)+1; i < r_height - 2; i++){
+    for(int i = (*starty)+1; i < r_height - 1; i++){
         mvwprintw(remote_window, i, 1, "%*s", fieldsize - 1, "");
     }
     mvwprintw(remote_window, *starty, startx, "%.*s", fieldsize - startx, msg);
