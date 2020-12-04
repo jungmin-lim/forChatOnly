@@ -21,8 +21,9 @@ void* send_msg(void*);
 void* recv_msg(void*);
 
 char msg[BUFSZ], buf[BUFSZ];
-int user_count, user_id_list[CLNTSZ];
 char user_name_list[CLNTSZ][NAMESZ];
+int user_count, user_id_list[CLNTSZ];
+int is_chat;
 
 int main(int argc, char* argv[]){
     int sock, group_id;
@@ -42,6 +43,8 @@ int main(int argc, char* argv[]){
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
     serv_addr.sin_port = htons(atoi(argv[2]));
+
+    is_chat = 1;
 
     // connect server
     if(connect(sock, (struct sockaddr* )&serv_addr, sizeof(serv_addr)) == -1){
@@ -335,10 +338,11 @@ int receive_msg(int sock, char* msg){
 
 void* send_msg(void *arg) {
     int sock = *((int*)arg);
+    int remote_sock;
     char s_msg[BUFSZ];
     while(1) {
         s_msg[0] = '\0';
-        getstring(s_msg, 1);
+        getstring(s_msg, is_chat);
         // fgets(s_msg, sizeof(s_msg), stdin);
         // s_msg[strlen(s_msg)-1] = '\0';
 
@@ -350,9 +354,21 @@ void* send_msg(void *arg) {
         }
 
         // remote
+        // TODO: need to deal with #
         else if(!strcmp(s_msg, "#init remote")){
+            write(sock, s_msg, strlen(s_msg));
+
+            s_msg[0] = ESC; s_msg[1] = '\0';
+            write(sock, s_msg, strlen(s_msg));
+
             user_count = receive_user_list(sock);
-            
+            remote_sock = choose_from_array(user_count, user_id_list, user_name_list);
+
+            sprintf(s_msg, "%d", remote_sock);
+            write(sock, s_msg, strlen(s_msg));
+
+            s_msg[0] = ESC; s_msg[1] = '\0';
+            write(sock, s_msg, strlen(s_msg));
         }
 
         // normal chat
@@ -369,16 +385,33 @@ void* send_msg(void *arg) {
 }
 
 void* recv_msg(void *arg) {
-    int sock = *((int*)arg);
-    char r_msg[BUFSZ], msg[BUFSZ], name[BUFSZ];
+    int sock = *((int*)arg), remote_id;
+    char r_msg[BUFSZ], msg[BUFSZ], name[NAMESZ];
     int str_len;
+
     while(1) {
         str_len = receive_msg(sock, r_msg);
-        if(str_len < -1){
+        if(str_len < 0){
             close(sock);
             return (void*)-1;
         }
 
+        if(!strncmp(r_msg, "#init remote", 12)){
+            sscanf(r_msg, "#init remote from %d %[^\t\n]", remote_id, name);
+            is_chat = !remote_request(name);
+
+            if(!is_chat){
+                write(sock, "#accepted remote", strlen("#accepted remote"));
+                r_msg[0] = ESC; r_msg[1] = '\0';
+                write(sock, r_msg, strlen(r_msg));
+
+            }
+            else{
+                write(sock, "#denied remote", strlen("#denied remote"));
+                r_msg[0] = ESC; r_msg[1] = '\0';
+                write(sock, r_msg, strlen(r_msg));
+            }
+        }
         sscanf(r_msg, "%s %s", name, msg);
         add_bubble(name, msg, 0);
         // fputs(r_msg, stdout);

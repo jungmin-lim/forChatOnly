@@ -84,6 +84,57 @@ int exit_handler(){
     return answer;
 }
 
+int remote_request(char* msg){
+    popup = newwin(10, 40, (LINES - 10)/2, (COLS - 40)/2);
+    int key;
+    int answer = 0, l = 1;
+    box(popup, '|', '-');
+    mvwprintw(popup, 4, 13, "remote access requested from %s", msg);
+    mvwprintw(popup, 6, 14, "%s", "Yes");
+    wattrset(popup, A_STANDOUT);
+    mvwprintw(popup, 6, 22, "%s", "No");
+    wrefresh(popup);
+
+    while(l){
+        key = getch();
+        switch(key){
+            case '\n':
+                l = 0;
+                break;
+            case KEY_LEFT:
+                if(answer == 0){
+                    wattron(popup, A_STANDOUT);
+                    mvwprintw(popup, 6, 14, "%s", "Yes");
+                    wattroff(popup, A_STANDOUT);
+                    mvwprintw(popup, 6, 22, "%s", "No");
+                    answer = 1;
+                }
+                break;
+            case KEY_RIGHT:
+                if(answer == 1){
+                    wattroff(popup, A_STANDOUT);
+                    mvwprintw(popup, 6, 14, "%s", "Yes");
+                    wattron(popup, A_STANDOUT);
+                    mvwprintw(popup, 6, 22, "%s", "No");
+                    answer = 0;
+                }
+                break;
+            case 27:
+                answer = 0;
+                l = 0;
+                break;
+        }
+        wmove(popup, 1, 0);
+        wrefresh(popup);
+    }
+    touchwin(stdscr);
+    refresh();
+    delwin(popup);
+    popup = NULL;
+
+    return answer;
+}
+
 #ifdef DEBUG
 int main(){
     int temp = 0;

@@ -19,6 +19,7 @@ typedef struct _client
     char name[NAMESZ];
     int color;
     int state;
+    int remote_id;
     clientPointer next;
 } client;
 
@@ -135,6 +136,7 @@ clientPointer create_clnt(int clnt_sock){
 
     new_clnt->fd = clnt_sock;
     new_clnt->state = 0;
+    new_clnt->remote_id = -1;
     new_clnt->color = rand() % 10;
     new_clnt->next = new_clnt;
     strcpy(new_clnt->name, "\0");
@@ -278,7 +280,7 @@ void send_user_list(int clnt_sock){
 void *handle_clnt(void *arg){
     clientPointer temp;
     int clnt_sock = *((int *)arg);
-    int str_len = 0, group_id, i;
+    int str_len = 0, group_id, remote_id, i;
     char msg[BUFSZ], buf[BUFSZ];
 
     while (1){
@@ -452,7 +454,23 @@ void *handle_clnt(void *arg){
                 // client requested user list. send user list
                 if(!strcmp(msg, "#init remote")){
                     send_user_list(clnt_sock);
-                    continue;
+
+                    str_len = receive_msg(clnt_sock, msg);
+                    sscanf(msg, "%d", &remote_id);
+
+                    sprintf(msg, "#init remote from %d %s", clnt_sock, clnt_list[clnt_sock]->name);
+                    write(remote_id, msg, strlen(msg));
+
+                    msg[0] = ESC; msg[0] = '\0';
+                    write(remote_id, msg, strlen(msg));
+                }
+
+                if(!strcmp(msg, "#accepted remote")){
+                    
+                    
+                }
+                if(!strcmp(msg, "#denied remote")){
+
                 }
             }
 
