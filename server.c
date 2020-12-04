@@ -477,7 +477,7 @@ void *handle_clnt(void *arg){
                         sprintf(msg, "#init remote from %d %s", clnt_sock, clnt_list[clnt_sock]->name);
                         write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
 
-                        msg[0] = ESC; msg[0] = '\0';
+                        msg[0] = ESC; msg[1] = '\0';
                         write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
                     }
 
