@@ -48,8 +48,6 @@ int main(int argc, char* argv[]){
 
     is_chat = 1;
 
-    close(2);
-
     // connect server
     if(connect(sock, (struct sockaddr* )&serv_addr, sizeof(serv_addr)) == -1){
         error_handling("connect error");
