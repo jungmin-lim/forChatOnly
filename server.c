@@ -80,9 +80,6 @@ int main(int argc, char *argv[]) {
     while (1) {
         clnt_adr_sz = sizeof(clnt_adr);
         clnt_sock = accept(serv_sock, (struct sockaddr *)&clnt_adr, &clnt_adr_sz);
-        // TODO: if client list full
-        if (clnt_sock >= CLNTSZ) {
-        }
 
         pthread_mutex_lock(&mutx);
         clnt_list[clnt_sock] = create_clnt(clnt_sock);
@@ -488,6 +485,16 @@ void *handle_clnt(void *arg) {
                     send_user_list(clnt_sock);
 
                     str_len = receive_msg(clnt_sock, msg);
+                    if(str_len < 0){
+                        exit_group(group_id, clnt_sock);
+                        remove_clnt(clnt_sock);
+                        close(clnt_sock);
+                        return NULL;
+                    }
+
+                    if(!strcmp(msg, "#unavailable")){
+                        continue;
+                    }
                     printf("msg: %s strlen: %d\n", msg, str_len);
                     sscanf(msg, "%d", &clnt_list[clnt_sock]->remote_id);
                     clnt_list[clnt_list[clnt_sock]->remote_id]->remote_id = clnt_sock;

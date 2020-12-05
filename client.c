@@ -524,6 +524,11 @@ void* recv_msg(void *arg) {
                 user_count = receive_user_list(sock);
                 // no available user
                 if(user_count == 0){
+                    sprintf(buf, "#unavailable");
+                    write(sock, buf, strlen(buf));
+                    
+                    buf[0] = ESC; buf[1] = '\0';
+                    write(sock, buf, strlen(buf));
                     dialog_msg("no user available for remote");
                 }
                 else{
