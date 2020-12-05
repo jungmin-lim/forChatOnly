@@ -503,8 +503,8 @@ void* recv_msg(void *arg) {
             }
 
             else if (r_msg[0] == '@'){
-                sscanf(&r_msg[1], "%s %[^\t\n]", name, msg);
-                add_bubble(name, msg, 0);
+                sscanf(&r_msg[1], "%d %s %[^\t\n]", &color, name, msg);
+                add_bubble(name, msg, color);
             }
             // fputs(r_msg, stdout);
             // fflush(stdout);
