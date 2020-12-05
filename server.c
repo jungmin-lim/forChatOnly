@@ -458,10 +458,27 @@ void *handle_clnt(void *arg) {
         }
 
         if (clnt_list[clnt_sock]->state == 2) {
-            write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
-            msg[0] = ESC;
-            msg[1] = '\0';
-            write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
+            if(!strcmp(msg, "#exit")){
+                write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
+
+                msg[0] = ESC;
+                msg[1] = '\0';
+                write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
+
+                clnt_list[clnt_list[clnt_sock]->remote_id]->state = 1;
+                clnt_list[clnt_list[clnt_sock]->remote_id]->remote_id = -1;
+
+                clnt_list[clnt_sock]->state = 1;
+                clnt_list[clnt_sock]->remote_id = -1;
+            }
+
+            else{
+                write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
+                msg[0] = ESC;
+                msg[1] = '\0';
+                write(clnt_list[clnt_sock]->remote_id, msg, strlen(msg));
+            }
+
         }
         else {
             // check if remote message

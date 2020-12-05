@@ -25,7 +25,7 @@ void* recv_msg(void*);
 char msg[BUFSZ], buf[BUFSZ],pwd[BUFSZ];
 char user_name_list[CLNTSZ][NAMESZ];
 int user_count, user_id_list[CLNTSZ];
-int is_chat,is_caller;
+int is_chat,is_caller = 0;
 
 int main(int argc, char* argv[]){
     int sock, group_id;
@@ -47,6 +47,8 @@ int main(int argc, char* argv[]){
     serv_addr.sin_port = htons(atoi(argv[2]));
 
     is_chat = 1;
+
+    close(2);
 
     // connect server
     if(connect(sock, (struct sockaddr* )&serv_addr, sizeof(serv_addr)) == -1){
@@ -402,12 +404,25 @@ void* send_msg(void *arg) {
             }
         }
         else{
-            write(sock, s_msg, strlen(s_msg));
+            if(!strcmp(s_msg, "exit")){
+                strcpy(s_msg, "#exit");
+                write(sock, s_msg, strlen(s_msg));
 
-            s_msg[0] = ESC; s_msg[1] = '\0';
-            write(sock, s_msg, strlen(s_msg));
-            s_msg[0] = '\n'; s_msg[1] = '\0';
-            print_remote(s_msg);
+                s_msg[0] = ESC; s_msg[1] = '\0';
+                write(sock, s_msg, strlen(s_msg));
+                is_chat = 1;
+                end_remote();
+                is_caller = 0;
+            }
+            else{
+                write(sock, s_msg, strlen(s_msg));
+
+                s_msg[0] = ESC; s_msg[1] = '\0';
+                write(sock, s_msg, strlen(s_msg));
+                s_msg[0] = '\n'; s_msg[1] = '\0';
+                print_remote(s_msg);
+            }
+
         }
     }
     return NULL;
@@ -433,6 +448,16 @@ void* recv_msg(void *arg) {
                 sscanf(&r_msg[1], "%d %s %[^\t\n]", &color, name, msg);
                 add_bubble(name, msg, color);
             }
+
+            if(strcmp(r_msg, "#exit") == 0){
+                is_chat = 1;
+                end_remote();
+                is_caller = 0;
+                continue;
+            }
+
+            //else if(!strcmp(r_msg, "#exit")){
+            //}
             else{
             	if(!is_caller){
                     if(strncmp(r_msg, "cd", 2) == 0){
@@ -443,9 +468,6 @@ void* recv_msg(void *arg) {
                 	        write(sock, s_msg, strlen(s_msg));
                             continue;
                         }
-                    }
-                    if(strncmp(r_msg, "exit", 4) == 0){
-                       // TODO: exit 
                     }
             		else if((fp=popen(r_msg,"r"))==NULL)
                 		error_handling("popen error");
