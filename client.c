@@ -341,36 +341,44 @@ void* send_msg(void *arg) {
         // fgets(s_msg, sizeof(s_msg), stdin);
         // s_msg[strlen(s_msg)-1] = '\0';
 
-        if(!strcmp(s_msg,"!exit")) {
-            if(exit_handler() == 1){
-                close(sock);
-                exit(0);
+        if(is_chat){
+            if(!strcmp(s_msg,"!exit")) {
+                if(exit_handler() == 1){
+                    close(sock);
+                    exit(0);
+                }
             }
-        }
 
-        else {
-            // remote
-            if(s_msg[0] == '#'){
-                if(!strcmp(s_msg, "#init remote")){
+            else {
+                // remote
+                if(s_msg[0] == '#'){
+                    if(!strcmp(s_msg, "#init remote")){
+                        write(sock, s_msg, strlen(s_msg));
+
+                        s_msg[0] = ESC; s_msg[1] = '\0';
+                        write(sock, s_msg, strlen(s_msg));
+                    }
+                    else{
+                        sprintf(s_msg, "invalid command try #init remote");
+                        add_bubble(NULL, s_msg, 0);
+                    }
+                }
+
+                // normal chat
+                else{
+                    add_bubble(NULL, s_msg, 0);
                     write(sock, s_msg, strlen(s_msg));
 
                     s_msg[0] = ESC; s_msg[1] = '\0';
                     write(sock, s_msg, strlen(s_msg));
                 }
-                else{
-                    sprintf(s_msg, "invalid command try #init remote");
-                    add_bubble(NULL, s_msg, 0);
-                }
             }
+        }
+        else{
+            write(sock, s_msg, strlen(s_msg));
 
-            // normal chat
-            else{
-                add_bubble(NULL, s_msg, 0);
-                write(sock, s_msg, strlen(s_msg));
-
-                s_msg[0] = ESC; s_msg[1] = '\0';
-                write(sock, s_msg, strlen(s_msg));
-            }
+            s_msg[0] = ESC; s_msg[1] = '\0';
+            write(sock, s_msg, strlen(s_msg));
         }
     }
     return NULL;

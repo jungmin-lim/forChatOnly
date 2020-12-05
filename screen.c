@@ -19,6 +19,7 @@ static int *ypos = NULL, *xpos = NULL;
 static int r_ypos, r_xpos;
 static int r_width, r_height;
 static int isChatting;
+static int recv_remote_data;
 static WINDOW* remote_window = NULL;
 static WINDOW *popup = NULL;
 static pthread_mutex_t mutx;
@@ -190,6 +191,10 @@ int getstring(char* buf, int isChat){
             break;
         }
         if(key == '\n') break;
+        if(!isChat && recv_remote_data){
+            starty = r_ypos;
+            startx = r_xpos;
+        }
         if(key >= ' ' && key < 127){
             if(isChat && len >= MSG_SIZE) continue;
     
@@ -205,7 +210,9 @@ int getstring(char* buf, int isChat){
                 }
             }
             if(isChat)reset_inputfield(buf, *ypos, *xpos);
-            else reset_remotefield(buf, &starty, startx, *ypos, *xpos);
+            else {
+                reset_remotefield(buf, &starty, startx, *ypos, *xpos);
+            }
         }
         else{
             switch(key){
@@ -265,10 +272,6 @@ int getstring(char* buf, int isChat){
                             move(*ypos, *xpos + INPUT_SPACE);
                         }
                         else{
-                            if(*xpos >= fieldsize){
-                                *xpos = 1;
-                                (*ypos)++;
-                            }
                             wmove(remote_window, *ypos, *xpos);
                             wrefresh(remote_window);
                         }
@@ -324,6 +327,7 @@ int getstring(char* buf, int isChat){
                     break;
             }
         }
+        recv_remote_data = 0;
     }
     buf[len] = '\0';
     if(isChat){
@@ -343,12 +347,14 @@ void init_remote(){
     mode = 1;
     isChatting = 0;
     r_ypos = 1; r_xpos = 1;
+    recv_remote_data = 0;
     wrefresh(remote_window);
 }
 
 void print_remote(char* msg){
     int width = r_width - 2, height = r_height - 2;
     int cur = width - r_ypos + 1;
+    recv_remote_data = 1;
     for(int i = 0; i < strlen(msg); i++){
         if(msg[i] != '\n'){
             mvwaddch(remote_window, r_ypos, r_xpos++, msg[i]);
