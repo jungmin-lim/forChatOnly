@@ -4,6 +4,7 @@
 #define NAMESZ 64
 
 int exit_handler();
+void dialog_msg(char* msg);
 int remote_request(char* msg);
 void init_screen();
 void add_bubble(char* name, char* msg, int color);

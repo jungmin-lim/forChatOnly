@@ -13,7 +13,6 @@
 #define INPUT_SPACE 3
 
 static int lines, cols;
-static int mode;
 static char* msgptr = NULL;
 static int *ypos = NULL, *xpos = NULL;
 static int r_ypos, r_xpos;
@@ -104,6 +103,20 @@ int dialog_yes_or_no(char* msg){
     return answer;
 }
 
+void dialog_msg(char* msg){
+    popup = newwin(10, 50, (LINES - 10)/2, (COLS - 50)/2);
+    box(popup, '|', '-');
+
+    mvwprintw(popup, 5, (50 - strlen(msg))/2, "%s", msg);
+    wrefresh(popup);
+    sleep(1);
+
+    touchwin(stdscr);
+    refresh();
+    delwin(popup);
+    popup = NULL;
+}
+
 int exit_handler(){
     return dialog_yes_or_no("Want to quit?");
 }
@@ -144,7 +157,6 @@ void init_screen(){
     crmode();
     keypad(stdscr, TRUE);
     noecho();
-    mode = 0;
     lines = LINES;
     cols = COLS;
     isChatting = 1;
@@ -344,7 +356,6 @@ void init_remote(){
     remote_window = newwin(r_height, r_width, 3/2, 5/2);
     box(remote_window, '|', ' ');
     scrollok(remote_window, 1);
-    mode = 1;
     isChatting = 0;
     r_ypos = 1; r_xpos = 1;
     recv_remote_data = 0;
@@ -381,6 +392,7 @@ void end_remote(){
     touchwin(stdscr);
     refresh();
     delwin(remote_window);
+    isChatting = 1;
     remote_window = NULL;
 }
 
