@@ -22,7 +22,7 @@ int receive_msg(int, char*);
 void* send_msg(void*);
 void* recv_msg(void*);
 
-char msg[BUFSZ], buf[BUFSZ];
+char msg[BUFSZ], buf[BUFSZ],pwd[BUFSZ];
 char user_name_list[CLNTSZ][NAMESZ];
 int user_count, user_id_list[CLNTSZ];
 int is_chat,is_caller;
@@ -38,7 +38,7 @@ int main(int argc, char* argv[]){
         fprintf(stderr, "usage: %s <hostIP> <port>\n", argv[0]);
         exit(1);
     }
-
+	close(2);
     sock = socket(PF_INET, SOCK_STREAM, 0);
 
     memset(&serv_addr, 0, sizeof(serv_addr));
@@ -263,8 +263,8 @@ int main(int argc, char* argv[]){
 }
 
 void error_handling(char* msg){
-    fputs(msg, stderr);
-    fputc('\n', stderr);
+    fputs(msg, stdout);
+    fputc('\n', stdout);
     exit(1);
 }
 
@@ -450,10 +450,20 @@ void* recv_msg(void *arg) {
             		else if((fp=popen(r_msg,"r"))==NULL)
                 		error_handling("popen error");
             	}
+            	else{
+            		if(strlen(pwd)<1){
+            			r_msg[strlen(r_msg)-1]='\0';
+            			sprintf(pwd,"%s$ ",r_msg);
+            			print_remote(pwd);
+            			continue;
+            		}
+            			
+            	}
             	
                 print_remote(r_msg);
                 r_msg[0] = '\n'; r_msg[1] = '\0';
                 print_remote(r_msg);
+                print_remote(pwd);
                 if(!is_caller){
                 	while(fgets(s_msg,BUFSIZ,fp)!=NULL)
                 		write(sock, s_msg, strlen(s_msg));
@@ -500,6 +510,11 @@ void* recv_msg(void *arg) {
                 is_chat = 0;
                 is_caller=1;
                 init_remote();
+                sprintf(s_msg, "pwd");
+                write(sock, s_msg, strlen(s_msg));
+
+                s_msg[0] = ESC; s_msg[1] = '\0';
+                write(sock, s_msg, strlen(s_msg));
             }
 
             else if (r_msg[0] == '@'){
