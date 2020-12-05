@@ -400,9 +400,16 @@ void* recv_msg(void *arg) {
         // remote
         if(!is_chat){
             // TODO: add remote feature (kyuhwan)
-            print_remote(r_msg);
+            if(r_msg[0] == '@'){
+                sscanf(&r_msg[1], "%s %[^\t\n]", name, msg);
+                add_bubble(name, msg, 0);
+            }
+            else{
+                print_remote(r_msg);
+            }
         }
 
+        // chat mode
         else{
             if(!strncmp(r_msg, "#init remote", 12)){
                 sscanf(r_msg, "#init remote from %d %[^\t\n]", &remote_id, name);
@@ -439,8 +446,8 @@ void* recv_msg(void *arg) {
                 init_remote();
             }
 
-            else{
-                sscanf(r_msg, "%s %[^\t\n]", name, msg);
+            else if (r_msg[0] == '@'){
+                sscanf(&r_msg[1], "%s %[^\t\n]", name, msg);
                 add_bubble(name, msg, 0);
             }
             // fputs(r_msg, stdout);
