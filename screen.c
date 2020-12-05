@@ -198,6 +198,7 @@ int getstring(char* buf, int isChat){
 
     while(1){
         key = getOneByte(isChat);
+        if(remote_window != NULL) touchwin(remote_window);
         if(isChatting == 0 && isChat == 1) {
             len = 0;
             break;
@@ -352,6 +353,8 @@ int getstring(char* buf, int isChat){
 }
 
 void init_remote(){
+    clear_inputspace();
+    refresh();
     r_width = COLS - 5, r_height = LINES - 3;
     remote_window = newwin(r_height, r_width, 3/2, 5/2);
     box(remote_window, '|', ' ');
@@ -364,17 +367,17 @@ void init_remote(){
 
 void print_remote(char* msg){
     int width = r_width - 2, height = r_height - 2;
-    int cur = width - r_ypos + 1;
+    int cur = width - r_ypos + 1, nl = 0;
     recv_remote_data = 1;
+    touchwin(remote_window);
     for(int i = 0; i < strlen(msg); i++){
         if(msg[i] != '\n'){
             mvwaddch(remote_window, r_ypos, r_xpos++, msg[i]);
         }
         else{
-            r_ypos++;
-            r_xpos = 1;
+            nl = 1;
         }
-        if(r_xpos >= width){
+        if(r_xpos >= width || nl){
             r_xpos = 1;
             r_ypos++;
             if(r_ypos > height){
@@ -382,6 +385,8 @@ void print_remote(char* msg){
                 wscrl(remote_window, 1);
                 box(remote_window, '|', ' ');
             }
+            nl = 0;
+            wmove(remote_window, r_ypos, r_xpos);
         }
         wrefresh(remote_window);
     }
@@ -504,6 +509,7 @@ void add_bubble(char* name, char* msg, int color){
         reset_inputfield(msgptr, *ypos, *xpos);
     }
     if(remote_window == NULL) refresh();
+    else wnoutrefresh(stdscr);
 }    
 
 void clear_inputspace(){

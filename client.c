@@ -379,6 +379,8 @@ void* send_msg(void *arg) {
 
             s_msg[0] = ESC; s_msg[1] = '\0';
             write(sock, s_msg, strlen(s_msg));
+            s_msg[0] = '\n'; s_msg[1] = '\0';
+            print_remote(s_msg);
         }
     }
     return NULL;
@@ -405,6 +407,8 @@ void* recv_msg(void *arg) {
                 add_bubble(name, msg, 0);
             }
             else{
+                print_remote(r_msg);
+                r_msg[0] = '\n'; r_msg[1] = '\0';
                 print_remote(r_msg);
             }
         }
