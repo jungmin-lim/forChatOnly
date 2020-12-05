@@ -416,7 +416,7 @@ void* send_msg(void *arg) {
 void* recv_msg(void *arg) {
     int sock = *((int*)arg), remote_id;
     char r_msg[BUFSZ], msg[BUFSZ], name[NAMESZ], s_msg[BUFSIZ];
-    int str_len;
+    int str_len, color;
 	FILE* fp;
     while(1) {
         str_len = receive_msg(sock, r_msg);
@@ -430,8 +430,8 @@ void* recv_msg(void *arg) {
         if(!is_chat){
             // TODO: add remote feature (kyuhwan)
             if(r_msg[0] == '@'){
-                sscanf(&r_msg[1], "%s %[^\t\n]", name, msg);
-                add_bubble(name, msg, 0);
+                sscanf(&r_msg[1], "%d %s %[^\t\n]", &color, name, msg);
+                add_bubble(name, msg, color);
             }
             else{
             	if(!is_caller){

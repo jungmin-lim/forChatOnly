@@ -135,7 +135,7 @@ clientPointer create_clnt(int clnt_sock) {
     new_clnt->fd = clnt_sock;
     new_clnt->state = 0;
     new_clnt->remote_id = -1;
-    new_clnt->color = rand() % 10;
+    new_clnt->color = rand() % 6;
     new_clnt->next = new_clnt;
     strcpy(new_clnt->name, "\0");
 
@@ -501,7 +501,7 @@ void *handle_clnt(void *arg) {
             else {
                 // add user name on message
                 strcpy(buf, msg);
-                sprintf(msg, "@[%s] %s", clnt_list[clnt_sock]->name, buf);
+                sprintf(msg, "@%d [%s] %s", clnt_list[clnt_sock]->color, clnt_list[clnt_sock]->name, buf);
 
                 temp = clnt_list[clnt_sock]->next;
                 buf[0] = ESC;
