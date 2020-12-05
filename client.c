@@ -38,7 +38,7 @@ int main(int argc, char* argv[]){
         fprintf(stderr, "usage: %s <hostIP> <port>\n", argv[0]);
         exit(1);
     }
-	close(2);
+    close(2);
     sock = socket(PF_INET, SOCK_STREAM, 0);
 
     memset(&serv_addr, 0, sizeof(serv_addr));
@@ -47,8 +47,6 @@ int main(int argc, char* argv[]){
     serv_addr.sin_port = htons(atoi(argv[2]));
 
     is_chat = 1;
-
-    close(2);
 
     // connect server
     if(connect(sock, (struct sockaddr* )&serv_addr, sizeof(serv_addr)) == -1){
