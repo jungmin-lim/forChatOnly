@@ -30,9 +30,11 @@ void reset_inputfield(char*, int, int);
 void reset_remotefield(char* msg, int *starty, int startx, int y, int x);
 int dialog_yes_or_no(char* msg);
 
-void int_handler(int signo){
-    endwin();
-    exit(0);
+void sig_handler(int signo){
+    if(exit_handler()){
+        endwin();
+        exit(0);
+    }
 }
 
 int getOneByte(int isChat){
@@ -140,9 +142,6 @@ int main(){
             add_bubble(name[0], msg, temp++);
         }
         if(temp == 6) temp = 0;
-        //temp = choose_from_array(3, id, name);
-        //sprintf(msg, "%d", temp);
-        //add_bubble(NULL, msg, 0);
     }
     endwin();
     return 0;
@@ -150,8 +149,8 @@ int main(){
 #endif
 
 void init_screen(){
-    signal(SIGINT, (void*)int_handler);
-    signal(SIGQUIT, (void*)int_handler);
+    signal(SIGINT, (void*)sig_handler);
+    signal(SIGQUIT, (void*)sig_handler);
     initscr();
     scrollok(stdscr, TRUE);
     init_colorset();

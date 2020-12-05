@@ -286,7 +286,7 @@ void *handle_clnt(void *arg) {
     clientPointer temp;
     int clnt_sock = *((int *)arg);
     int str_len = 0, group_id, remote_id, i;
-    char msg[BUFSZ], buf[BUFSZ];
+    char msg[BUFSZ*2], buf[BUFSZ];
 
     /*
             new client connected
