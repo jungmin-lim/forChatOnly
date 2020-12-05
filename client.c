@@ -337,7 +337,7 @@ void* send_msg(void *arg) {
     char s_msg[BUFSZ];
     while(1) {
         s_msg[0] = '\0';
-        getstring(s_msg, is_chat);
+        if (getstring(s_msg, is_chat) <= 0) continue;
         // fgets(s_msg, sizeof(s_msg), stdin);
         // s_msg[strlen(s_msg)-1] = '\0';
 
@@ -348,29 +348,30 @@ void* send_msg(void *arg) {
             }
         }
 
-        // remote
-        if(s_msg[0] == '#'){
-            if(!strcmp(s_msg, "#init remote")){
+        else {
+            // remote
+            if(s_msg[0] == '#'){
+                if(!strcmp(s_msg, "#init remote")){
+                    write(sock, s_msg, strlen(s_msg));
+
+                    s_msg[0] = ESC; s_msg[1] = '\0';
+                    write(sock, s_msg, strlen(s_msg));
+                }
+                else{
+                    sprintf(s_msg, "invalid command try #init remote");
+                    add_bubble(NULL, s_msg, 0);
+                }
+            }
+
+            // normal chat
+            else{
+                add_bubble(NULL, s_msg, 0);
                 write(sock, s_msg, strlen(s_msg));
 
                 s_msg[0] = ESC; s_msg[1] = '\0';
                 write(sock, s_msg, strlen(s_msg));
             }
-            else{
-                sprintf(s_msg, "invalid command try #init remote");
-                add_bubble(NULL, s_msg, 0);
-            }
         }
-
-        // normal chat
-        else{
-            add_bubble(NULL, s_msg, 0);
-            write(sock, s_msg, strlen(s_msg));
-
-            s_msg[0] = ESC; s_msg[1] = '\0';
-            write(sock, s_msg, strlen(s_msg));
-        }
-
     }
     return NULL;
 }

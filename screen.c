@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
+#include <pthread.h>
 #include "screen.h"
 #include "bufstring.h"
 
@@ -17,8 +18,10 @@ static char* msgptr = NULL;
 static int *ypos = NULL, *xpos = NULL;
 static int r_ypos, r_xpos;
 static int r_width, r_height;
+static int isChatting;
 static WINDOW* remote_window = NULL;
 static WINDOW *popup = NULL;
+static pthread_mutex_t mutx;
 
 void init_colorset();
 void clear_inputspace();
@@ -32,20 +35,33 @@ void int_handler(int signo){
     exit(0);
 }
 
+int getOneByte(int isChat){
+    pthread_mutex_lock(&mutx);
+    int ret = getch();
+    if(isChat != isChatting) {
+        ungetch(ret);
+        ret = 0;
+    }
+    pthread_mutex_unlock(&mutx);
+    return ret;
+}
+
 int dialog_yes_or_no(char* msg){
     popup = newwin(10, 40, (LINES - 10)/2, (COLS - 40)/2);
     keypad(popup, TRUE);
     int key;
     int answer = 0, l = 1;
+    int temp = isChatting;
+    isChatting = 2;
     box(popup, '|', '-');
-    mvwprintw(popup, 4, 13, "%s", "Want to quit?");
+    mvwprintw(popup, 4, (40 - strlen(msg))/2, "%s", msg);
     mvwprintw(popup, 6, 14, "%s", "Yes");
     wattrset(popup, A_STANDOUT);
     mvwprintw(popup, 6, 22, "%s", "No");
     wrefresh(popup);
 
     while(l){
-        key = wgetch(popup);
+        key = getOneByte(2);
         switch(key){
             case '\n':
                 l = 0;
@@ -80,6 +96,7 @@ int dialog_yes_or_no(char* msg){
     refresh();
     delwin(popup);
     popup = NULL;
+    isChatting = temp;
     if(answer == 1){
         endwin();
     }
@@ -129,7 +146,9 @@ void init_screen(){
     mode = 0;
     lines = LINES;
     cols = COLS;
+    isChatting = 1;
     msgptr = NULL; ypos = NULL; xpos = NULL;
+    pthread_mutex_init(&mutx, NULL);
     clear();
 }
 
@@ -164,7 +183,13 @@ int getstring(char* buf, int isChat){
         startx = r_xpos;
     }
 
-    while((key = getch()) != '\n'){
+    while(1){
+        key = getOneByte(isChat);
+        if(isChatting == 0 && isChat == 1) {
+            len = 0;
+            break;
+        }
+        if(key == '\n') break;
         if(key >= ' ' && key < 127){
             if(isChat && len >= MSG_SIZE) continue;
     
@@ -316,6 +341,7 @@ void init_remote(){
     box(remote_window, '|', ' ');
     scrollok(remote_window, 1);
     mode = 1;
+    isChatting = 0;
     r_ypos = 1; r_xpos = 1;
     wrefresh(remote_window);
 }
@@ -356,7 +382,9 @@ int choose_from_array(int count, int* id, char name[][NAMESZ]){
     WINDOW* list_popup = newwin(count+2, NAMESZ + 8, (LINES - count + 2)/2, (COLS - NAMESZ + 8)/2);
     int c = -1;
     int ans = 0, loop = 1;
+    int temp = isChatting;
     keypad(list_popup, true);
+    isChatting = 3;
     box(list_popup, '|', '-');
     do{
         switch(c){
@@ -380,10 +408,11 @@ int choose_from_array(int count, int* id, char name[][NAMESZ]){
                 wattroff(list_popup, A_STANDOUT);
         }
         wrefresh(list_popup);
-    } while(loop && (c = wgetch(list_popup)));
+    } while(loop && (c = getOneByte(3)));
     touchwin(stdscr);
     refresh();
     delwin(list_popup);
+    isChatting = temp;
     return id[ans];
 }
 
