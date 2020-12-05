@@ -503,7 +503,7 @@ void add_bubble(char* name, char* msg, int color){
         init_inputspace();
         reset_inputfield(msgptr, *ypos, *xpos);
     }
-    refresh();
+    if(remote_window == NULL) refresh();
 }    
 
 void clear_inputspace(){
