@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <curses.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -416,7 +417,19 @@ void* recv_msg(void *arg) {
             }
             else{
             	if(!is_caller){
-            		if((fp=popen(r_msg,"r"))==NULL)
+                    if(strncmp(r_msg, "cd", 2) == 0){
+                        if(chdir(r_msg + 3) != 0){
+                            sprintf(s_msg, "%s: not found", r_msg+3);
+                	        write(sock, s_msg, strlen(s_msg));
+                	        s_msg[0] = ESC; s_msg[1] = '\0';
+                	        write(sock, s_msg, strlen(s_msg));
+                            continue;
+                        }
+                    }
+                    if(strncmp(r_msg, "exit", 4) == 0){
+                       // TODO: exit 
+                    }
+            		else if((fp=popen(r_msg,"r"))==NULL)
                 		error_handling("popen error");
             	}
             	
