@@ -29,7 +29,7 @@ int is_chat,is_caller;
 
 int main(int argc, char* argv[]){
     int sock, group_id;
-    int str_len, pos, mod;
+    int str_len, pos, mod, i;
     struct sockaddr_in serv_addr;
     pthread_t snd_thread, rcv_thread;
     void* thread_return;
@@ -158,7 +158,16 @@ int main(int argc, char* argv[]){
                     fprintf(stdout, "user name should shorter than 64 letters. try again: ");
                     fflush(stdout);
                 }
+                else if(strlen(buf) < 1){
+                    fprintf(stdout, "invalid user name. try again: ");
+                    fflush(stdout);
+                }
                 else{
+                    for(i = 0 ; i < strlen(buf); ++i){
+                        if(buf[i] == ' '){
+                            buf[i] = '_';
+                        }
+                    }
                     strcpy(msg, buf);
                     write(sock, msg, strlen(msg));
 
@@ -208,7 +217,16 @@ int main(int argc, char* argv[]){
                     fprintf(stdout, "user name should shorter than 64 letters. try again: ");
                     fflush(stdout);
                 }
+                else if(strlen(buf) < 1){
+                    fprintf(stdout, "invalid user name. try again: ");
+                    fflush(stdout);
+                }
                 else{
+                    for(i = 0; i < strlen(buf); ++i){
+                        if(buf[i] == ' '){
+                            buf[i] = '_';
+                        }
+                    }
                     strcpy(msg, buf);
                     write(sock, msg, strlen(msg));
 
@@ -476,7 +494,6 @@ void* recv_msg(void *arg) {
 
                 s_msg[0] = ESC; s_msg[1] = '\0';
                 write(sock, s_msg, strlen(s_msg));
-                init_remote();
             }
 
             else if(!strcmp(r_msg, "#accepted remote")){
