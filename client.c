@@ -415,8 +415,11 @@ void* recv_msg(void *arg) {
                 add_bubble(name, msg, 0);
             }
             else{
-            	if((fp=popen(r_msg,"r"))==NULL)
-                	error_handling("popen error");
+            	if(!is_caller){
+            		if((fp=popen(r_msg,"r"))==NULL)
+                		error_handling("popen error");
+            	}
+            	
                 print_remote(r_msg);
                 r_msg[0] = '\n'; r_msg[1] = '\0';
                 print_remote(r_msg);
@@ -425,9 +428,6 @@ void* recv_msg(void *arg) {
                 		write(sock, s_msg, strlen(s_msg));
                 	s_msg[0] = ESC; s_msg[1] = '\0';
                 	write(sock, s_msg, strlen(s_msg));
-                	pclose(fp);
-                }
-                else{
                 	pclose(fp);
                 }
                 	
