@@ -137,11 +137,12 @@ int main(){
     char name[3][64] = {"hello", "my", "name is screen.c"};
     while(1){
         if(getstring(msg, 1) > 0){
-            add_bubble(NULL, msg, temp);
+            add_bubble(name[0], msg, temp++);
         }
-        temp = choose_from_array(3, id, name);
-        sprintf(msg, "%d", temp);
-        add_bubble(NULL, msg, 0);
+        if(temp == 6) temp = 0;
+        //temp = choose_from_array(3, id, name);
+        //sprintf(msg, "%d", temp);
+        //add_bubble(NULL, msg, 0);
     }
     endwin();
     return 0;
@@ -169,6 +170,12 @@ void init_colorset(){
     start_color();
     init_pair(0, COLOR_WHITE, COLOR_BLACK);
     init_pair(1, COLOR_BLACK, COLOR_WHITE);
+    init_pair(2, COLOR_RED, COLOR_RED);
+    init_pair(3, COLOR_GREEN, COLOR_GREEN);
+    init_pair(4, COLOR_YELLOW, COLOR_YELLOW);
+    init_pair(5, COLOR_BLUE, COLOR_BLUE);
+    init_pair(6, COLOR_MAGENTA, COLOR_MAGENTA);
+    init_pair(7, COLOR_CYAN, COLOR_CYAN);
 }
 
 int getstring(char* buf, int isChat){
@@ -503,11 +510,20 @@ void add_bubble(char* name, char* msg, int color){
         printw("%.*s", bubblewidth, msg + cur);
         i++;
     }
+
+    if(name != NULL){
+        attrset(COLOR_PAIR(color + 2));
+        mvprintw(where + 1, space + 3, "   ");
+        mvprintw(where + 2, space + 3, "   ");
+        mvprintw(where + 3, space + 3, "   ");
+    }
+
     scrl(MSG_HEIGHT+1);
     if(msgptr != NULL){
         init_inputspace();
         reset_inputfield(msgptr, *ypos, *xpos);
     }
+
     if(remote_window == NULL) refresh();
     else wnoutrefresh(stdscr);
 }    
