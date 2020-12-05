@@ -406,7 +406,7 @@ void end_remote(){
     delwin(remote_window);
     clear_inputspace();
     init_inputspace();
-    refresh();
+    
     isChatting = 1;
     remote_window = NULL;
 }
