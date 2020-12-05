@@ -519,13 +519,19 @@ void* recv_msg(void *arg) {
 
             else if(!strcmp(r_msg, "#user list")){
                 user_count = receive_user_list(sock);
-                remote_id = choose_from_array(user_count, user_id_list, user_name_list);
+                // no available user
+                if(user_count == 0){
+                    dialog_msg("no user available for remote");
+                }
+                else{
+                    remote_id = choose_from_array(user_count, user_id_list, user_name_list);
 
-                sprintf(s_msg, "%d", remote_id);
-                write(sock, s_msg, strlen(s_msg));
+                    sprintf(s_msg, "%d", remote_id);
+                    write(sock, s_msg, strlen(s_msg));
 
-                s_msg[0] = ESC; s_msg[1] = '\0';
-                write(sock, s_msg, strlen(s_msg));
+                    s_msg[0] = ESC; s_msg[1] = '\0';
+                    write(sock, s_msg, strlen(s_msg));
+                }
             }
 
             else if(!strcmp(r_msg, "#accepted remote")){
