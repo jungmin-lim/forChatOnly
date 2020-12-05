@@ -14,6 +14,7 @@
 #define NAMESZ 64
 #define CLNTSZ 1024
 #define ESC (char)27
+#define CAESAR_KEY 3
 
 void error_handling(char*);
 void receive_group_list(int, char*);
@@ -21,6 +22,8 @@ int receive_user_list(int);
 int receive_msg(int, char*);
 void* send_msg(void*);
 void* recv_msg(void*);
+void encrypt(char*);
+void decrypt(char*);
 
 char msg[BUFSZ], buf[BUFSZ];
 char user_name_list[CLNTSZ][NAMESZ];
@@ -434,6 +437,7 @@ void send_dir(int sock){
 
     fgets(s_msg, BUFSIZ, fp);
     s_msg[strlen(s_msg)-1] = '\0';
+    encrypt(s_msg);
     write(sock, s_msg, strlen(s_msg));
 
     sprintf(s_msg, "$ ");
@@ -457,6 +461,9 @@ void* recv_msg(void *arg) {
         // remote
         if(!is_chat){
             // TODO: add remote feature (kyuhwan)
+
+            decrypt(r_msg);
+
             if(r_msg[0] == '@'){
                 sscanf(&r_msg[1], "%d %s %[^\t\n]", &color, name, msg);
                 add_bubble(name, msg, color);
@@ -488,8 +495,10 @@ void* recv_msg(void *arg) {
                 r_msg[0] = '\n'; r_msg[1] = '\0';
                 print_remote(r_msg);
                 if(!is_caller){
-                	while(fgets(s_msg,BUFSIZ,fp)!=NULL)
-                		write(sock, s_msg, strlen(s_msg));
+                    while (fgets(s_msg, BUFSIZ, fp) != NULL) {
+                        encrypt(s_msg);
+                        write(sock, s_msg, strlen(s_msg));
+                    }
                 	s_msg[0] = ESC; s_msg[1] = '\0';
                 	write(sock, s_msg, strlen(s_msg));
                 	pclose(fp);
@@ -560,3 +569,12 @@ void* recv_msg(void *arg) {
     return NULL;
 }
 
+void encrypt(char* msg) {
+    for (int i = 0; i < strlen(msg); i++)
+        msg += CAESAR_KEY;
+}
+
+void decrypt(char* msg) {
+    for (int i = 0; i < strlen(msg); i++)
+        msg -= CAESAR_KEY;
+}
