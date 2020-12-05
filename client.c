@@ -24,7 +24,7 @@ void* recv_msg(void*);
 char msg[BUFSZ], buf[BUFSZ];
 char user_name_list[CLNTSZ][NAMESZ];
 int user_count, user_id_list[CLNTSZ];
-int is_chat;
+int is_chat,is_caller;
 
 int main(int argc, char* argv[]){
     int sock, group_id;
@@ -398,7 +398,7 @@ void* recv_msg(void *arg) {
     int sock = *((int*)arg), remote_id;
     char r_msg[BUFSZ], msg[BUFSZ], name[NAMESZ], s_msg[BUFSIZ];
     int str_len;
-
+	FILE* fp;
     while(1) {
         str_len = receive_msg(sock, r_msg);
         if(str_len < 0){
@@ -415,9 +415,22 @@ void* recv_msg(void *arg) {
                 add_bubble(name, msg, 0);
             }
             else{
+            	if((fp=popen(r_msg,"r"))==NULL)
+                	error_handling("popen error");
                 print_remote(r_msg);
                 r_msg[0] = '\n'; r_msg[1] = '\0';
                 print_remote(r_msg);
+                if(!is_caller){
+                	while(fgets(s_msg,BUFSIZ,fp)!=NULL)
+                		write(sock, s_msg, strlen(s_msg));
+                	s_msg[0] = ESC; s_msg[1] = '\0';
+                	write(sock, s_msg, strlen(s_msg));
+                	pclose(fp);
+                }
+                else{
+                	pclose(fp);
+                }
+                	
             }
         }
 
@@ -455,6 +468,7 @@ void* recv_msg(void *arg) {
 
             else if(!strcmp(r_msg, "#accepted remote")){
                 is_chat = 0;
+                is_caller=1;
                 init_remote();
             }
 
