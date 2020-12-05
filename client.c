@@ -428,6 +428,21 @@ void* send_msg(void *arg) {
     return NULL;
 }
 
+void send_dir(int sock){
+    char s_msg[BUFSIZ];
+    FILE* fp;
+    if((fp=popen("pwd","r"))==NULL)
+        error_handling("popen error");
+
+    fgets(s_msg, BUFSIZ, fp);
+    s_msg[strlen(s_msg)-1] = '\0';
+    write(sock, s_msg, strlen(s_msg));
+
+    sprintf(s_msg, "$ ");
+    s_msg[2] = ESC; s_msg[3] = '\0';
+    write(sock, s_msg, strlen(s_msg));
+}
+
 void* recv_msg(void *arg) {
     int sock = *((int*)arg), remote_id;
     char r_msg[BUFSZ], msg[BUFSZ], name[NAMESZ], s_msg[BUFSIZ];
@@ -483,7 +498,8 @@ void* recv_msg(void *arg) {
                 	write(sock, s_msg, strlen(s_msg));
                 	pclose(fp);
                 }
-                	
+
+                if(!is_caller) send_dir(sock);
             }
         }
 
@@ -498,6 +514,7 @@ void* recv_msg(void *arg) {
                     r_msg[0] = ESC; r_msg[1] = '\0';
                     write(sock, r_msg, strlen(r_msg));
                     init_remote();
+                    send_dir(sock);
                 }
 
                 else{
