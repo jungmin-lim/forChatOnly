@@ -206,7 +206,7 @@ int getstring(char* buf, int isChat){
     while(1){
         key = getOneByte(isChat);
         if(remote_window != NULL) touchwin(remote_window);
-        if(isChatting == 0 && isChat == 1) {
+        if((isChatting == 0 && isChat == 1) || (isChatting == 1 && isChat == 0)) {
             len = 0;
             break;
         }
@@ -404,6 +404,9 @@ void end_remote(){
     touchwin(stdscr);
     refresh();
     delwin(remote_window);
+    clear_inputspace();
+    init_inputspace();
+    refresh();
     isChatting = 1;
     remote_window = NULL;
 }
