@@ -460,8 +460,6 @@ void* recv_msg(void *arg) {
 
         // remote
         if(!is_chat){
-            // TODO: add remote feature (kyuhwan)
-
             decrypt(r_msg);
 
             if(r_msg[0] == '@'){
@@ -484,6 +482,7 @@ void* recv_msg(void *arg) {
                 	        write(sock, s_msg, strlen(s_msg));
                 	        s_msg[0] = ESC; s_msg[1] = '\0';
                 	        write(sock, s_msg, strlen(s_msg));
+                            send_dir(sock);
                             continue;
                         }
                     }
@@ -492,8 +491,10 @@ void* recv_msg(void *arg) {
             	}
             	
                 print_remote(r_msg);
-                r_msg[0] = '\n'; r_msg[1] = '\0';
-                print_remote(r_msg);
+                if(r_msg[0] != '/'){
+                    r_msg[0] = '\n'; r_msg[1] = '\0';
+                    print_remote(r_msg);
+                }
                 if(!is_caller){
                     while (fgets(s_msg, BUFSIZ, fp) != NULL) {
                         encrypt(s_msg);
