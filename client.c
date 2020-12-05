@@ -402,12 +402,24 @@ void* send_msg(void *arg) {
             }
         }
         else{
-            write(sock, s_msg, strlen(s_msg));
+            if(!strcmp(s_msg, "exit")){
+                strcpy(s_msg, "#exit");
+                write(sock, s_msg, strlen(s_msg));
 
-            s_msg[0] = ESC; s_msg[1] = '\0';
-            write(sock, s_msg, strlen(s_msg));
-            s_msg[0] = '\n'; s_msg[1] = '\0';
-            print_remote(s_msg);
+                s_msg[0] = ESC; s_msg[1] = '\0';
+                write(sock, s_msg, strlen(s_msg));
+                is_chat = 1;
+                end_remote();
+            }
+            else{
+                write(sock, s_msg, strlen(s_msg));
+
+                s_msg[0] = ESC; s_msg[1] = '\0';
+                write(sock, s_msg, strlen(s_msg));
+                s_msg[0] = '\n'; s_msg[1] = '\0';
+                print_remote(s_msg);
+            }
+
         }
     }
     return NULL;
@@ -432,6 +444,11 @@ void* recv_msg(void *arg) {
             if(r_msg[0] == '@'){
                 sscanf(&r_msg[1], "%d %s %[^\t\n]", &color, name, msg);
                 add_bubble(name, msg, color);
+            }
+
+            else if(!strcmp(r_msg, "#exit")){
+                is_chat = 1;
+                end_remote();
             }
             else{
             	if(!is_caller){
