@@ -339,11 +339,6 @@ int getstring(char* buf, int isChat){
                         lines = LINES;
                     }
                     break;
-                case KEY_F(1):
-                    init_remote();
-                    sleep(2);
-                    end_remote();
-                    break;
             }
         }
         recv_remote_data = 0;
